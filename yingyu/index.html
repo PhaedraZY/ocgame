@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>樱宇 · Cherry Cosmos</title>
+<meta name="description" content="樱宇的个人小宇宙：一颗掉进宇宙的樱桃，长成了一个小女孩。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍒</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Fredoka:wght@400;600&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="locked">
+
+<!-- shared svg defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="4"/>
+    </filter>
+    <symbol id="cherry" viewBox="0 0 64 72">
+      <path d="M22 44 C24 26 30 14 44 4 M44 4 C44 20 46 32 46 46" fill="none" stroke="#6b9c47" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M44 5 C52 0 62 4 62 10 C54 14 46 12 44 5Z" fill="#8cc865" stroke="#6b9c47" stroke-width="2"/>
+      <circle cx="20" cy="52" r="15" fill="#e2363f" stroke="#a8202a" stroke-width="2.5"/>
+      <circle cx="46" cy="54" r="14" fill="#e2363f" stroke="#a8202a" stroke-width="2.5"/>
+      <ellipse cx="14" cy="46" rx="4" ry="5.5" fill="#fff" opacity=".8"/>
+      <ellipse cx="41" cy="48" rx="3.5" ry="5" fill="#fff" opacity=".8"/>
+    </symbol>
+    <symbol id="one-cherry" viewBox="0 0 40 46">
+      <path d="M20 18 C20 10 24 5 30 2" fill="none" stroke="#6b9c47" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="20" cy="29" r="15" fill="#e2363f" stroke="#a8202a" stroke-width="2.5"/>
+      <ellipse cx="14" cy="23" rx="4" ry="5" fill="#fff" opacity=".85"/>
+    </symbol>
+  </defs>
+</svg>
+
+<canvas id="starfield"></canvas>
+<div id="cursor"><svg viewBox="0 0 64 72"><use href="#cherry"/></svg></div>
+
+<!-- ============ INTRO ============ -->
+<div id="intro">
+  <div class="intro-thread"></div>
+  <svg class="intro-cherry" id="introCherry" viewBox="0 0 64 72"><use href="#cherry"/></svg>
+  <div class="intro-text" id="introText">
+    <p>很久很久以前……</p>
+    <p>有一颗樱桃，从枝头轻轻掉了下来。</p>
+    <p>它没有落在地上——</p>
+    <p>而是落进了宇宙里。</p>
+  </div>
+  <button class="intro-btn" id="introBtn">伸手接住它 🍒</button>
+  <button class="intro-skip" id="introSkip">跳过序章 →</button>
+</div>
+<div class="splash" id="splash"></div>
+
+<!-- ============ NAV ============ -->
+<nav class="nav" id="nav">
+  <a href="#home" data-sec="home"><i></i><span>樱桃星球</span></a>
+  <a href="#profile" data-sec="profile"><i></i><span>星际档案</span></a>
+  <a href="#room" data-sec="room"><i></i><span>小房间</span></a>
+  <a href="#game" data-sec="game"><i></i><span>樱桃流星雨</span></a>
+  <a href="#wish" data-sec="wish"><i></i><span>许愿星</span></a>
+  <button class="sound" id="soundBtn" title="音乐盒">🎵</button>
+</nav>
+
+<main>
+<!-- ============ HERO ============ -->
+<section class="sec night hero" id="home">
+  <div class="nebula a"></div><div class="nebula b"></div><div class="nebula c"></div>
+  <div class="hero-text">
+    <div class="eyebrow">Chapter 01 · welcome to the cherry cosmos</div>
+    <h1 class="hero-title"><span>樱</span><span>宇</span><svg class="dot" viewBox="0 0 40 46"><use href="#one-cherry"/></svg></h1>
+    <div class="hero-sub">YING · YU</div>
+    <p class="hero-desc">一颗掉进宇宙的<b>樱桃</b>，在星星中间慢慢长成了一个小女孩。<br>她头顶的三颗樱桃绕着光环公转，<br>走到哪里，哪里就会变得<b>甜甜的</b>。</p>
+    <div class="hero-tags"><span>🍒 樱桃星人</span><span>🪐 宇宙小天使</span><span>🎀 红色蝴蝶结</span><span>🌱 叶子发饰</span></div>
+    <a class="hero-cta" href="#profile">去看看她的档案 ✦</a>
+  </div>
+  <div class="planet-stage" id="planetStage">
+    <div class="orbit-ring"></div>
+    <div class="orbit-ring r2"></div>
+    <div class="mini-planet p1"></div><div class="mini-planet p2"></div><div class="mini-planet p3"></div>
+    <div class="hero-char-wrap" id="heroChar">
+      <div class="bubble" id="heroBubble">你好呀，旅人！</div>
+      <img class="hero-char" src="assets/yingyu.png" alt="樱宇">
+    </div>
+  </div>
+  <div class="scroll-hint">向下漂流<i></i></div>
+</section>
+
+<svg class="wave" viewBox="0 0 1440 70" preserveAspectRatio="none"><path d="M0 40 C180 0 320 70 520 36 C720 2 880 66 1080 34 C1240 8 1340 40 1440 30 L1440 70 L0 70Z" fill="#fdf0e6"/></svg>
+
+<!-- ============ PROFILE ============ -->
+<section class="sec paper" id="profile">
+  <div class="chapter reveal">
+    <div class="no">Chapter 02</div>
+    <h2>星际档案</h2>
+    <p>入境樱桃宇宙之前，先认识一下这里的主人吧</p>
+  </div>
+  <div class="profile-grid">
+    <article class="sketch-box passport reveal">
+      <div class="passport-head"><span>樱桃宇宙 · 星际护照</span><b>CHERRY COSMOS</b></div>
+      <div class="passport-body">
+        <div class="passport-photo"><img src="assets/yingyu.png" alt=""></div>
+        <dl class="fields" id="fields"></dl>
+      </div>
+      <div class="passport-more">
+        <h4>♥ 喜欢</h4><div class="likes" id="likes"></div>
+        <h4>✕ 不喜欢</h4><div class="likes no" id="dislikes"></div>
+        <h4>✎ 口头禅</h4><div id="catchphrase"></div>
+      </div>
+      <div class="stamp"><div><b>已入境</b>樱桃星<br>✦ 2026 ✦</div></div>
+      <div class="mrz">P&lt;CHY&lt;YINGYU&lt;&lt;CHERRY&lt;COSMOS&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;<br>0606&lt;3CHERRIES&lt;HALO&lt;SWEET&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div>
+    </article>
+
+    <article class="sketch-box feature-card reveal">
+      <h3>设定小图鉴 <small>— tap the dots!</small></h3>
+      <div class="feature-stage" id="featureStage">
+        <img src="assets/yingyu.png" alt="樱宇设定">
+      </div>
+      <div class="feature-note" id="featureNote">点一点图上的<b>小红点</b>，看看樱宇身上藏着的小秘密 ✦</div>
+      <div class="palette" id="palette"></div>
+    </article>
+  </div>
+</section>
+
+<svg class="wave" viewBox="0 0 1440 70" preserveAspectRatio="none" style="background:#fdf0e6"><path d="M0 30 C200 70 380 4 600 34 C820 64 980 6 1180 30 C1300 46 1380 30 1440 40 L1440 70 L0 70Z" fill="#19142f"/></svg>
+
+<!-- ============ ROOM ============ -->
+<section class="sec night" id="room">
+  <div class="chapter reveal">
+    <div class="no">Chapter 03</div>
+    <h2>樱宇的小房间</h2>
+    <p>她用星星的边角料搭了一个圆窗户的小屋 —— 随便摸摸看吧</p>
+  </div>
+  <div class="room-wrap reveal">
+    <div class="room-bar">
+      <div class="room-progress">已发现 <b id="foundNum">0</b>/<span id="foundTotal">9</span><div class="bar"><i id="foundBar"></i></div></div>
+      <div class="room-tip">提示：灯、望远镜、衣柜、日记……都能点哦</div>
+    </div>
+    <div class="room" id="roomEl">
+      <svg class="room-svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <pattern id="wallp" width="90" height="90" patternUnits="userSpaceOnUse">
+            <rect width="90" height="90" fill="#fbe6e2"/>
+            <circle cx="20" cy="24" r="5" fill="#f4c2c4"/><circle cx="29" cy="26" r="4.5" fill="#f4c2c4"/>
+            <path d="M22 19 Q26 12 31 10 M27 21 Q28 15 31 10" stroke="#cfe0bf" stroke-width="1.6" fill="none"/>
+            <path d="M66 62 l3 7 7 1 -5 5 1.5 7 -6.5-3.5 -6.5 3.5 1.5-7 -5-5 7-1z" fill="#f9d8de"/>
+            <circle cx="70" cy="18" r="2" fill="#f4cdd3"/><circle cx="16" cy="72" r="2" fill="#f4cdd3"/>
+          </pattern>
+          <radialGradient id="spaceG" cx="40%" cy="35%"><stop offset="0" stop-color="#4a3482"/><stop offset="1" stop-color="#140f2b"/></radialGradient>
+          <radialGradient id="lampG"><stop offset="0" stop-color="#fff2c8" stop-opacity=".85"/><stop offset="1" stop-color="#ffd9a0" stop-opacity="0"/></radialGradient>
+          <linearGradient id="bubbleG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a7e3f7"/><stop offset="1" stop-color="#f5a9d6"/></linearGradient>
+          <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse"><rect width="26" height="26" fill="#e2363f"/><circle cx="7" cy="7" r="3.5" fill="#fff" opacity=".85"/><circle cx="20" cy="19" r="3" fill="#fff" opacity=".85"/></pattern>
+          <clipPath id="winClip"><circle cx="370" cy="200" r="94"/></clipPath>
+        </defs>
+
+        <g filter="url(#wobble)" stroke="#7d6f78" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+          <!-- wall & floor -->
+          <rect x="-10" y="-10" width="1020" height="490" fill="url(#wallp)" stroke="none"/>
+          <rect x="-10" y="470" width="1020" height="140" fill="#ecd0b3"/>
+          <g stroke="#d5b394" stroke-width="3"><path d="M-10 510 H1010 M-10 552 H1010 M120 470 V510 M380 470 V510 M690 470 V510 M240 510 V552 M560 510 V552 M860 510 V552 M90 552 V600 M430 552 V600 M760 552 V600"/></g>
+          <rect x="-10" y="458" width="1020" height="16" fill="#fff8f2"/>
+
+          <!-- rug -->
+          <ellipse cx="470" cy="540" rx="210" ry="40" fill="#f7c9cf"/>
+          <ellipse cx="470" cy="540" rx="170" ry="28" fill="none" stroke="#fff" stroke-dasharray="12 10" stroke-width="4"/>
+
+          <!-- WINDOW -->
+          <g class="item" data-id="window" data-x="37">
+            <g clip-path="url(#winClip)" stroke="none">
+              <rect x="270" y="100" width="200" height="200" fill="url(#spaceG)"/>
+              <g fill="#fff"><circle class="twinkle" cx="310" cy="150" r="2"/><circle class="twinkle" cx="420" cy="140" r="2.5"/><circle class="twinkle" cx="350" cy="260" r="1.8"/><circle class="twinkle" cx="440" cy="230" r="2"/><circle class="twinkle" cx="330" cy="200" r="1.5"/><circle class="twinkle" cx="395" cy="175" r="1.5"/></g>
+              <g class="winplanet"><circle cx="440" cy="200" r="16" fill="url(#bubbleG)"/><ellipse cx="440" cy="200" rx="26" ry="6" fill="none" stroke="#fff" stroke-width="2" opacity=".8"/></g>
+              <use href="#one-cherry" x="318" y="214" width="34" height="40"/>
+              <path class="shoot" id="shootStar" d="M450 120 L300 230" stroke="#fffbe0" stroke-width="3" fill="none"/>
+            </g>
+            <circle cx="370" cy="200" r="94" fill="none" stroke="#fff" stroke-width="14"/>
+            <circle cx="370" cy="200" r="102" fill="none"/>
+            <circle cx="370" cy="200" r="87" fill="none"/>
+            <path d="M262 92 C300 140 296 230 252 290 L246 92Z" fill="#f6b2c0"/>
+            <path d="M478 92 C440 140 444 230 488 290 L494 92Z" fill="#f6b2c0"/>
+            <path d="M236 92 H504" stroke-width="7"/>
+            <circle cx="236" cy="92" r="7" fill="#e2363f"/><circle cx="504" cy="92" r="7" fill="#e2363f"/>
+            <circle class="tag" cx="370" cy="88" r="7" fill="#fff" stroke="#e2363f"/>
+          </g>
+
+          <!-- WARDROBE -->
+          <g class="item" data-id="closet" data-x="17">
+            <rect x="38" y="196" width="156" height="282" rx="16" fill="#f7d9c6"/>
+            <path d="M116 206 V470"/>
+            <rect x="52" y="218" width="54" height="120" rx="20" fill="#fdeee4"/>
+            <rect x="126" y="218" width="54" height="120" rx="20" fill="#fdeee4"/>
+            <circle cx="106" cy="352" r="6" fill="#e2363f"/><circle cx="126" cy="352" r="6" fill="#e2363f"/>
+            <path d="M60 390 H100 M132 390 H172 M60 420 H100 M132 420 H172" stroke-width="3"/>
+            <path d="M58 478 V492 M174 478 V492" stroke-width="6"/>
+            <path d="M80 196 Q116 160 152 196" fill="#f7d9c6"/>
+            <use href="#one-cherry" x="104" y="160" width="24" height="28"/>
+            <circle class="tag" cx="116" cy="236" r="7" fill="#fff" stroke="#e2363f"/>
+          </g>
+
+          <!-- FRAME -->
+          <g class="item" data-id="frame" data-x="29">
+            <path d="M290 318 L278 300 M290 318 L302 300" stroke-width="2.5"/>
+            <rect x="252" y="318" width="76" height="86" rx="6" fill="#fff" transform="rotate(-4 290 360)"/>
+            <rect x="262" y="328" width="56" height="52" fill="#2f2458" stroke="none" transform="rotate(-4 290 360)"/>
+            <circle cx="290" cy="354" r="12" fill="#8c6b5e" stroke="none"/><circle cx="286" cy="340" r="4" fill="#e2363f" stroke="none"/>
+            <circle class="tag" cx="322" cy="318" r="6" fill="#fff" stroke="#e2363f"/>
+          </g>
+
+          <!-- LAMP -->
+          <g class="item" data-id="lamp" data-x="56">
+            <circle class="lampglow" cx="570" cy="130" r="150" fill="url(#lampG)" stroke="none"/>
+            <path d="M570 -10 V96" stroke-width="3"/>
+            <circle cx="570" cy="126" r="32" fill="url(#bubbleG)"/>
+            <ellipse cx="570" cy="128" rx="52" ry="12" fill="none" stroke="#fff" stroke-width="5"/>
+            <ellipse cx="570" cy="128" rx="52" ry="12" fill="none" stroke-width="2"/>
+            <circle cx="558" cy="114" r="6" fill="#fff" stroke="none" opacity=".8"/>
+            <circle class="tag" cx="606" cy="100" r="6" fill="#fff" stroke="#e2363f"/>
+          </g>
+
+          <!-- TELESCOPE -->
+          <g class="item" data-id="scope" data-x="48">
+            <path d="M500 404 L468 500 M500 404 L532 500 M500 404 L502 506" stroke-width="5"/>
+            <g transform="rotate(-32 500 400)">
+              <rect x="436" y="382" width="138" height="36" rx="12" fill="#fff8f0"/>
+              <rect x="470" y="382" width="14" height="36" fill="#e2363f"/>
+              <rect x="526" y="382" width="14" height="36" fill="#e2363f"/>
+              <rect x="420" y="388" width="20" height="24" rx="6" fill="#a7e3f7"/>
+              <rect x="572" y="378" width="18" height="44" rx="6" fill="#f6b2c0"/>
+            </g>
+            <circle cx="500" cy="402" r="9" fill="#8c6b5e"/>
+            <circle class="tag" cx="560" cy="340" r="6" fill="#fff" stroke="#e2363f"/>
+          </g>
+
+          <!-- TABLE + RECORD PLAYER -->
+          <g class="item" data-id="music" data-x="64">
+            <path d="M594 432 V498 M676 432 V498" stroke-width="6"/>
+            <rect x="578" y="420" width="114" height="16" rx="6" fill="#c99a7f"/>
+            <rect x="590" y="380" width="92" height="40" rx="10" fill="#a7e3f7"/>
+            <g class="vinyl"><ellipse cx="628" cy="380" rx="32" ry="9" fill="#4a3d55"/><ellipse cx="628" cy="380" rx="9" ry="3" fill="#e2363f" stroke="none"/></g>
+            <path d="M672 372 L662 362 L648 378" stroke-width="3" fill="none"/>
+            <circle cx="606" cy="402" r="4" fill="#fff"/><circle cx="620" cy="402" r="4" fill="#e2363f"/>
+            <text class="note" x="660" y="352" font-size="22" fill="#e2363f" stroke="none">♪</text>
+            <text class="note n2" x="610" y="350" font-size="18" fill="#7d6f78" stroke="none">♫</text>
+            <circle class="tag" cx="636" cy="356" r="6" fill="#fff" stroke="#e2363f"/>
+          </g>
+
+          <!-- BED -->
+          <g class="item" data-id="bed" data-x="80">
+            <path d="M940 496 V318 Q940 282 966 282 Q992 282 992 318 V496" fill="#c99a7f"/>
+            <circle cx="966" cy="312" r="10" fill="#e2363f"/>
+            <rect x="702" y="408" width="262" height="58" rx="10" fill="#c99a7f"/>
+            <rect x="712" y="380" width="236" height="36" rx="14" fill="#fff"/>
+            <path d="M780 376 C840 366 900 368 942 378 L946 444 C900 452 830 452 776 446 Z" fill="url(#dots)"/>
+            <path d="M776 446 C830 452 900 452 946 444" stroke-width="3" fill="none"/>
+            <ellipse cx="748" cy="376" rx="40" ry="20" fill="#fff1f1"/>
+            <use href="#one-cherry" x="736" y="360" width="22" height="26"/>
+            <path d="M712 466 V494 M950 466 V494" stroke-width="6"/>
+            <circle class="tag" cx="860" cy="372" r="6" fill="#fff" stroke="#e2363f"/>
+          </g>
+
+          <!-- SHELF -->
+          <rect x="700" y="226" width="256" height="12" rx="4" fill="#c99a7f"/>
+          <path d="M726 238 L736 258 M930 238 L920 258" stroke-width="4"/>
+
+          <!-- JAR -->
+          <g class="item" data-id="jar" data-x="74">
+            <rect x="728" y="148" width="62" height="16" rx="5" fill="#e2363f"/>
+            <path d="M732 164 Q724 172 726 196 Q726 224 742 226 H776 Q792 224 792 196 Q794 172 786 164Z" fill="#ffffff99"/>
+            <g id="jarCherries" stroke="none"></g>
+            <path d="M740 176 Q736 196 742 214" stroke="#fff" stroke-width="4" fill="none"/>
+            <circle class="tag" cx="760" cy="140" r="6" fill="#fff" stroke="#e2363f"/>
+          </g>
+
+          <!-- PLANT -->
+          <g class="item" data-id="plant" data-x="83">
+            <path d="M816 192 H864 L858 226 H822Z" fill="#f3c6a0"/>
+            <path d="M840 192 C838 170 842 150 846 132" fill="none" stroke="#6b9c47"/>
+            <path d="M842 168 C826 160 814 164 810 172 C822 178 834 176 842 168Z" fill="#8cc865" stroke="#6b9c47" stroke-width="2.5"/>
+            <path d="M844 152 C858 140 872 142 876 150 C866 158 854 158 844 152Z" fill="#8cc865" stroke="#6b9c47" stroke-width="2.5"/>
+            <g id="plantFruit"></g>
+            <circle class="tag" cx="866" cy="124" r="6" fill="#fff" stroke="#e2363f"/>
+          </g>
+
+          <!-- DIARY -->
+          <g class="item" data-id="diary" data-x="86">
+            <rect x="890" y="172" width="44" height="56" rx="5" fill="#e2363f"/>
+            <rect x="896" y="176" width="34" height="48" rx="3" fill="none" stroke="#fff" stroke-width="2"/>
+            <path d="M912 188 l2.5 5 5.5 .8 -4 4 1 5.5 -5-2.7 -5 2.7 1-5.5 -4-4 5.5-.8z" fill="#fff" stroke="none"/>
+            <path d="M926 228 V246 L921 240 L916 246 V228" fill="#f6b2c0" stroke-width="2.5"/>
+            <circle class="tag" cx="926" cy="166" r="6" fill="#fff" stroke="#e2363f"/>
+          </g>
+        </g>
+        <rect class="nightshade" x="0" y="0" width="1000" height="600" fill="#120e2a"/>
+          <!-- glow-in-the-dark stars on wall -->
+          <g stroke="none" fill="#fff6b8" style="filter:drop-shadow(0 0 6px #ffe98a)" pointer-events="none">
+            <path class="glowstar" d="M250 70 l4 9 10 1 -7 7 2 10 -9-5 -9 5 2-10 -7-7 10-1z"/>
+            <path class="glowstar" d="M610 250 l3 7 7 1 -5 5 1.5 7 -6.5-3.5 -6.5 3.5 1.5-7 -5-5 7-1z"/>
+            <path class="glowstar" d="M520 60 l3 7 7 1 -5 5 1.5 7 -6.5-3.5 -6.5 3.5 1.5-7 -5-5 7-1z"/>
+            <path class="glowstar" d="M880 90 l4 9 10 1 -7 7 2 10 -9-5 -9 5 2-10 -7-7 10-1z"/>
+            <circle class="glowstar" cx="680" cy="120" r="4"/><circle class="glowstar" cx="210" cy="400" r="3"/>
+            <circle class="glowstar" cx="470" cy="330" r="3"/><circle class="glowstar" cx="760" cy="300" r="4"/>
+            <path class="glowstar" d="M150 120 a16 16 0 1 0 14 24 a12 12 0 1 1 -14 -24z"/>
+          </g>
+
+      </svg>
+      <div class="room-char" id="roomChar">
+        <div class="bubble" id="roomBubble"></div>
+        <div class="flip"><img src="assets/yingyu.png" alt="樱宇"></div>
+        <div class="zzz">z z Z</div>
+        <div class="shadow"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<svg class="wave" viewBox="0 0 1440 70" preserveAspectRatio="none"><path d="M0 40 C180 0 320 70 520 36 C720 2 880 66 1080 34 C1240 8 1340 40 1440 30 L1440 70 L0 70Z" fill="#fdf0e6"/></svg>
+
+<!-- ============ GAME ============ -->
+<section class="sec paper" id="game">
+  <div class="chapter reveal">
+    <div class="no">Chapter 04</div>
+    <h2>樱桃流星雨</h2>
+    <p>今晚樱桃从天上落下来啦！帮樱宇用头顶的光环接住它们</p>
+  </div>
+  <div class="game-wrap reveal">
+    <div class="sketch-box game-box">
+      <div class="game-canvas-wrap">
+        <canvas id="gameCanvas"></canvas>
+        <div class="game-over" id="gameOver">
+          <div id="gameOverInner">
+            <h3>樱桃流星雨</h3>
+            <p>鼠标 / 手指左右移动，或者用 ← → 键<br>60 秒内接住尽量多的樱桃，小心灰色陨石！</p>
+            <button class="btn" id="gameStart">开始接樱桃 🍒</button>
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i>🍒</i>樱桃 +1</span>
+        <span><i>✨</i>金樱桃 +5</span>
+        <span><i>💗</i>补一颗心</span>
+        <span><i>🪨</i>陨石 -1 心</span>
+      </div>
+      <div class="game-stats">最高分 <b id="bestScore">0</b> · 罐子里一共存了 <b id="jarTotal">0</b> 颗樱桃</div>
+    </div>
+  </div>
+</section>
+
+<svg class="wave" viewBox="0 0 1440 70" preserveAspectRatio="none" style="background:#fdf0e6"><path d="M0 30 C200 70 380 4 600 34 C820 64 980 6 1180 30 C1300 46 1380 30 1440 40 L1440 70 L0 70Z" fill="#19142f"/></svg>
+
+<!-- ============ WISH ============ -->
+<section class="sec night" id="wish">
+  <div class="chapter reveal">
+    <div class="no">Chapter 05</div>
+    <h2>许愿星</h2>
+    <p>在樱桃宇宙里，每一个愿望都会变成一颗星星</p>
+  </div>
+  <div class="wish-sky reveal" id="wishSky">
+    <div class="wish-count" id="wishCount"></div>
+    <div class="moon"></div><div class="wish-neb n1"></div><div class="wish-neb n2"></div>
+    <div class="hill"><img class="tiny" src="assets/yingyu.png" alt=""></div>
+    <div class="wish-tip" id="wishTip"></div>
+    <form class="wish-form" id="wishForm">
+      <input id="wishInput" maxlength="40" placeholder="写下一个小小的愿望……" autocomplete="off">
+      <button class="btn" type="submit">送上天 ✦</button>
+    </form>
+  </div>
+</section>
+
+<footer>
+  樱宇 · Cherry Cosmos ── 谢谢你来樱桃宇宙做客 <span class="heart">♥</span><br>
+  <small>original character © 樱宇的主人</small>
+</footer>
+</main>
+
+<div id="modal"><div class="sketch-box modal-card" id="modalCard"><button class="modal-close" id="modalClose">✕</button><div id="modalBody"></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

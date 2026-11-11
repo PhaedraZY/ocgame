@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OC Game · 原创角色的小宇宙</title>
+<meta name="description" content="原创角色们住的小宇宙。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Fredoka:wght@400;600&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; font-family: "ZCOOL KuaiLe", "Fredoka", "Microsoft YaHei", sans-serif; color: #f6eaff;
+    background: radial-gradient(ellipse at 50% 30%, #2f2458 0%, #19142f 55%, #0c0818 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; overflow-x: hidden;
+  }
+  canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .wrap { position: relative; z-index: 1; text-align: center; width: 100%; max-width: 980px; }
+  .eyebrow { font-family: "Caveat", cursive; font-size: 24px; color: #f7b9cb; }
+  h1 { font-weight: 400; font-size: clamp(48px, 9vw, 96px); letter-spacing: .08em; line-height: 1.15; text-shadow: 4px 4px 0 #e2363f, 0 0 40px #ff8aa866; }
+  .sub { margin-top: 10px; opacity: .75; letter-spacing: .1em; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px; margin-top: 56px; }
+  .card {
+    position: relative; display: block; text-decoration: none; color: #5a4852; padding: 26px 22px 22px;
+    background: #fff8f0; border: 3px solid #9a8c93; border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px;
+    box-shadow: 6px 8px 0 #0005; transition: transform .3s cubic-bezier(.3,1.6,.5,1);
+  }
+  .card:hover { transform: translateY(-8px) rotate(-1.5deg); }
+  .card .pic { height: 210px; display: grid; place-items: center; border-radius: 18px; background: radial-gradient(circle at 50% 45%, #fff 0%, #fde1e6 55%, #f7c3cf 100%); }
+  .card .pic img { max-height: 190px; animation: bob 4s ease-in-out infinite; }
+  .card h2 { font-weight: 400; font-size: 30px; margin-top: 14px; color: #e2363f; letter-spacing: .1em; }
+  .card p { font-size: 14px; opacity: .8; }
+  .card .go { display: inline-block; margin-top: 12px; padding: 6px 18px; border-radius: 20px; background: #e2363f; color: #fff; font-size: 14px; letter-spacing: .1em; }
+  .card.soon { color: #cbbfe0; background: #ffffff0d; border: 3px dashed #ffffff40; box-shadow: none; cursor: default; }
+  .card.soon:hover { transform: none; }
+  .card.soon .pic { background: #ffffff08; font-size: 64px; opacity: .5; }
+  .card.soon h2 { color: #cbbfe0; }
+  footer { position: relative; z-index: 1; margin-top: 60px; font-size: 13px; opacity: .55; letter-spacing: .12em; }
+  @keyframes bob { 50% { transform: translateY(-8px); } }
+</style>
+</head>
+<body>
+<canvas id="s"></canvas>
+<div class="wrap">
+  <div class="eyebrow">welcome, traveler ✦</div>
+  <h1>OC 小宇宙</h1>
+  <p class="sub">这里住着一些原创角色，挑一颗星球去拜访吧</p>
+  <div class="grid">
+    <a class="card" href="yingyu/">
+      <div class="pic"><img src="yingyu/assets/yingyu.png" alt="樱宇"></div>
+      <h2>樱宇</h2>
+      <p>掉进宇宙的一颗樱桃 · Cherry Cosmos</p>
+      <span class="go">前往樱桃星球 →</span>
+    </a>
+    <div class="card soon">
+      <div class="pic">?</div>
+      <h2>敬请期待</h2>
+      <p>下一位居民正在路上……</p>
+    </div>
+  </div>
+</div>
+<footer>ocgame.online · original characters</footer>
+<script>
+  const c = document.getElementById('s'), x = c.getContext('2d');
+  let st = [];
+  function r() { c.width = innerWidth; c.height = innerHeight; st = Array.from({ length: innerWidth * innerHeight / 5000 | 0 }, () => [Math.random() * c.width, Math.random() * c.height, Math.random() * 1.5 + .3, Math.random() * 6]); }
+  addEventListener('resize', r); r();
+  (function f(t) {
+    x.clearRect(0, 0, c.width, c.height); x.fillStyle = '#fff';
+    for (const [a, b, s, p] of st) { x.globalAlpha = .3 + .7 * Math.abs(Math.sin(t / 1200 + p)); x.beginPath(); x.arc(a, b, s, 0, 6.28); x.fill(); }
+    requestAnimationFrame(f);
+  })(0);
+</script>
+</body>
+</html>
