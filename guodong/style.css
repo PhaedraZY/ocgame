@@ -416,3 +416,29 @@ body.mobile .home-card > .hud { position: absolute; left: 6px; top: 6px; z-index
 body.mobile .room .rspot { pointer-events: auto; }
 body.mobile.at-home .spread.shop-view { display: none; }
 body.mobile:not(.at-home) .spread.home-view { display: none; }
+
+/* shopping cart */
+.buy.incart { border: 2px solid #93bb57 !important; background: #f3f9e6 !important; transform: translateY(-2px); }
+.buy .incart-tag { position: absolute; right: 6px; top: 4px; font-style: normal; font-size: 11px; padding: 0 6px; border-radius: 8px; background: #93bb57; color: #fff; }
+.cats button sup { margin-left: 3px; font-size: 10px; color: #fff; background: #e7849c; border-radius: 8px; padding: 0 4px; }
+.cartbar { position: sticky; bottom: -22px; margin: 12px -30px -22px; padding: 10px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; background: #fffbef; border-top: 1.8px dashed #a3908999; font-family: var(--f-cute); z-index: 2; }
+.cartbar.small { position: static; margin: 10px 0 0; border: 1.6px dashed #a3908999; border-radius: 14px; display: none; }
+.cartbar.small.on { display: flex; }
+.cartbar .cart-ic b { color: #e7849c; font-weight: 400; }
+.cartbar .cart-list { flex: 1 1 200px; display: flex; flex-wrap: wrap; gap: 4px; font-family: var(--f-hand); font-size: 13px; color: var(--soft); }
+.cartbar .cart-list i { font-style: normal; padding: 0 8px; border-radius: 10px; background: #e4f0c7; color: #5d6157; cursor: pointer; }
+.cartbar .cart-list u { text-decoration: none; color: #c96a80; }
+.cartbar .cart-sum b, .confirm-sum b { color: #c98a3c; font-weight: 400; }
+.cartbar .btn { padding: 4px 16px; font-size: 15px; }
+.confirm-list { list-style: none; margin: 8px 0; }
+.confirm-list li { display: flex; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px dashed #a3908955; }
+.confirm-list .ic { width: 52px; display: grid; place-items: center; }
+.confirm-list b { flex: 1; font-weight: 400; font-family: var(--f-cute); color: #5d6157; }
+.confirm-list button { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--line); color: #c96a80; }
+.confirm-sum { font-family: var(--f-cute); font-size: 16px; }
+.confirm-sum small { font-family: var(--f-hand); color: var(--soft); }
+b.neg { color: #d1667e !important; }
+.paper .warn { color: #d1667e; font-size: 14px; }
+.paper h4 small { font-family: var(--f-hand); font-size: 12px; color: var(--soft); }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+@media (max-width: 900px) { .cartbar { margin: 10px -16px -14px; bottom: -14px; padding: 8px 12px; } }

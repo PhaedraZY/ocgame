@@ -626,6 +626,7 @@ function openIntro() {
 const DIARY = ['今天，学会了蒸布丁。第一锅蒸老了，偷偷吃掉了。', '果冻要放冰箱，等的时候去做布丁。主人说这叫「同时」。', '门口排起队了。耳朵转来转去，好累。但是，好开心。', '今天的苹果很甜。主人说，我越来越像店长了。'];
 const starHtml = n => '<span class="stars">' + [0, 1, 2].map(i => `<i class="${i < n ? 'on' : ''}">★</i>`).join('') + '</span>';
 function openReport(cfg, stars) {
+  decoCart.clear();
   const owned = new Set(save.decor);
   const items = A.DECOR.map(d => `<button class="buy ${owned.has(d.id) ? 'owned' : ''}" data-buy="${d.id}" ${owned.has(d.id) ? 'disabled' : ''}>
       <canvas data-icon="${d.id}"></canvas><b>${d.name}</b><span>${owned.has(d.id) ? '已放进店里' : `${d.price} 枚`}</span></button>`).join('');
@@ -638,22 +639,45 @@ function openReport(cfg, stars) {
         <li>兜里一共 <b class="total">${save.coins}</b> 枚</li>
       </ul>
       <p class="diary">果冻写：「${DIARY[Math.min(DIARY.length - 1, save.day - 2)]}」</p>
-      <h4>给小店添点东西</h4>
+      <h4>给小店添点东西 <small>（点选加入购物车，再点移出）</small></h4>
       <div class="shoplist">${items}</div>
+      <div class="cartbar small" id="decoCart"></div>
       <div class="row"><button class="btn ghost" data-go="home">回小屋布置 🏠</button><button class="btn ghost" data-go="stay">先在店里逛逛</button><button class="btn" data-go="next">${cfgOf(save.day).title}，开店 →</button></div>
       <p class="keys">${cfgOf(save.day).sub}</p>
     </div>`, 'report');
   sheet.querySelectorAll('[data-icon]').forEach(cv => { cv.style.width = cv.style.height = '64px'; paint(cv, 80, 80, .8, p => A.decorIcon(p, cv.dataset.icon), 31); });
   sheet.querySelectorAll('[data-buy]').forEach(b => b.addEventListener('click', () => buy(b)));
 }
-function buy(b) {
+const decoCart = new Set();
+function buy(b) {      // toggle in / out of the cart
   const d = A.DECOR.find(x => x.id === b.dataset.buy);
   if (save.decor.includes(d.id)) return;
-  if (save.coins < d.price) { b.classList.remove('no'); void b.offsetWidth; b.classList.add('no'); say(`硬币……还差 ${d.price - save.coins} 枚。`, 1600); return; }
-  save.coins -= d.price; save.decor.push(d.id); persist();
-  b.classList.add('owned'); b.disabled = true; b.querySelector('span').textContent = '已放进店里';
-  const tot = sheet.querySelector('.total'); if (tot) tot.textContent = save.coins;
-  paintShop(); updateHud(); squish(3); mood('happy', 3); say(d.line, 2600);
+  if (decoCart.has(d.id)) { decoCart.delete(d.id); b.classList.remove('incart'); b.querySelector('span').textContent = `${d.price} 枚`; snd('tick'); }
+  else { decoCart.add(d.id); b.classList.add('incart'); b.querySelector('span').textContent = '🛒 已加入'; snd('place'); }
+  renderDecoCart();
+}
+function renderDecoCart(confirming = false) {
+  const el = sheet.querySelector('#decoCart'); if (!el) return;
+  const items = A.DECOR.filter(d => decoCart.has(d.id)), total = items.reduce((s, d) => s + d.price, 0), after = save.coins - total;
+  el.classList.toggle('on', items.length > 0);
+  if (!items.length) { el.innerHTML = ''; return; }
+  el.innerHTML = confirming
+    ? `<span class="cart-list">确认买 ${items.map(d => d.name).join('、')}？合计 <b>${total}</b> 枚，买完剩 <b class="${after < 0 ? 'neg' : ''}">${after}</b> 枚${after < 0 ? `（还差 ${-after} 枚）` : ''}</span>
+       <button class="btn ghost" data-dc="back">再看看</button><button class="btn" data-dc="pay" ${after < 0 ? 'disabled' : ''}>确认购买</button>`
+    : `<span class="cart-ic">🛒 <b>${items.length}</b></span><span class="cart-list">${items.map(d => d.name).join('、')}</span><span class="cart-sum">合计 <b>${total}</b> 枚</span>
+       <button class="btn ghost" data-dc="clear">清空</button><button class="btn" data-dc="done">好了</button>`;
+  el.querySelector('[data-dc="done"]')?.addEventListener('click', () => renderDecoCart(true));
+  el.querySelector('[data-dc="back"]')?.addEventListener('click', () => renderDecoCart(false));
+  el.querySelector('[data-dc="clear"]')?.addEventListener('click', () => { decoCart.clear(); sheet.querySelectorAll('.buy.incart').forEach(b => { b.classList.remove('incart'); const d = A.DECOR.find(x => x.id === b.dataset.buy); b.querySelector('span').textContent = `${d.price} 枚`; }); renderDecoCart(); });
+  el.querySelector('[data-dc="pay"]')?.addEventListener('click', () => {
+    if (save.coins < total) return renderDecoCart(true);
+    save.coins -= total; for (const d of items) save.decor.push(d.id); decoCart.clear(); persist();
+    sheet.querySelectorAll('.buy.incart').forEach(b => { b.classList.remove('incart'); b.classList.add('owned'); b.disabled = true; b.querySelector('span').textContent = '已放进店里'; });
+    const tot = sheet.querySelector('.total'); if (tot) tot.textContent = save.coins;
+    paintShop(); updateHud(); squish(3); mood('happy', 3); snd('coin'); setTimeout(() => snd('happy'), 250);
+    say(items.length > 1 ? '店里……变漂亮了！' : items[0].line, 2600);
+    renderDecoCart();
+  });
 }
 function openFinale(stars) {
   openSheet(`

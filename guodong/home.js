@@ -240,33 +240,69 @@ function renderBox() {
 }
 const hsheet = $('#hsheet');
 let shopCat = 'bed';
+const cart = new Set();
 const limitOf = id => IT[id].limit || MAX[id] || 3;
+const cartTotal = () => [...cart].reduce((s, id) => s + IT[id].price, 0);
+const snd = n => { const f = typeof BGM !== 'undefined' && BGM.sfx && BGM.sfx[n]; f && f(); };
 function openShop() {
+  const keepScroll = hsheet.querySelector('.paper')?.scrollTop || 0;
   const cats = Object.keys(H.CAT);
   const ids = Object.keys(IT).filter(id => IT[id].price > 0 && IT[id].cat === shopCat).sort((a, b) => IT[a].price - IT[b].price);
+  const inCat = c => [...cart].filter(id => IT[id].cat === c).length;
   hsheet.innerHTML = `<div class="paper report furni"><h3>家具店 <small>兜里 <b class="hcoins">${GD.coins()}</b> 枚</small></h3>
-    <div class="cats">${cats.map(c => `<button data-cat="${c}" class="${c === shopCat ? 'on' : ''}">${H.CAT[c]}</button>`).join('')}</div>
-    <div class="shoplist home">${ids.map((id, i) => { const d = IT[id], lim = (hs.owned[id] || 0) >= limitOf(id);
+    <div class="cats">${cats.map(c => `<button data-cat="${c}" class="${c === shopCat ? 'on' : ''}">${H.CAT[c]}${inCat(c) ? `<sup>${inCat(c)}</sup>` : ''}</button>`).join('')}</div>
+    <div class="shoplist home">${ids.map((id, i) => { const d = IT[id], lim = (hs.owned[id] || 0) >= limitOf(id), inc = cart.has(id);
       const tier = ids.length > 1 ? ['基础', '进阶', '精致', '精致'][Math.min(3, Math.round(i / (ids.length - 1) * 2))] : '';
-      return `<button class="buy ${lim ? 'owned' : ''} lv${Math.min(2, Math.round(i / Math.max(1, ids.length - 1) * 2))}" data-hbuy="${id}" ${lim ? 'disabled' : ''}><i class="tier">${tier}</i><span class="ic" data-ic="${id}"></span><b>${d.name}${id === 'bed' && !hs.owned.bed && !hs.owned.mat ? ' · 推荐' : ''}</b><span>${lim ? '已经有了' : `${d.price} 枚 · ♥${d.comfort}`}</span></button>`; }).join('')}</div>
-    <p class="keys">买了会放进收纳箱，再拖进房间。舒适度越高，果冻第二天心情越好。</p>
-    <div class="row"><button class="btn" data-hgo="close">好了</button></div></div>`;
+      return `<button class="buy ${lim ? 'owned' : ''} ${inc ? 'incart' : ''} lv${Math.min(2, Math.round(i / Math.max(1, ids.length - 1) * 2))}" data-hbuy="${id}" ${lim ? 'disabled' : ''}><i class="tier">${tier}</i>${inc ? '<i class="incart-tag">🛒 已加入</i>' : ''}<span class="ic" data-ic="${id}"></span><b>${d.name}${id === 'bed' && !hs.owned.bed && !hs.owned.mat ? ' · 推荐' : ''}</b><span>${lim ? '已经有了' : inc ? '再点一下移出' : `${d.price} 枚 · ♥${d.comfort}`}</span></button>`; }).join('')}</div>
+    <p class="keys">点家具加入购物车，再点一下移出。选好了点「好了」，确认后才扣钱。</p>
+    <div class="cartbar ${cart.size ? 'on' : ''}">
+      <span class="cart-ic">🛒 <b>${cart.size}</b></span>
+      <span class="cart-list">${cart.size ? [...cart].map(id => `<i data-rm="${id}">${IT[id].name} <u>×</u></i>`).join('') : '购物车是空的'}</span>
+      <span class="cart-sum">合计 <b>${cartTotal()}</b> 枚</span>
+      ${cart.size ? '<button class="btn ghost" data-hgo="clear">清空</button>' : ''}
+      <button class="btn" data-hgo="done">好了</button>
+    </div></div>`;
   hsheet.className = 'sheet on';
+  const paper = hsheet.querySelector('.paper'); paper.scrollTop = keepScroll;
   hsheet.querySelectorAll('[data-ic]').forEach(s => s.append(icon(s.dataset.ic, 74)));
-  hsheet.querySelectorAll('[data-hbuy]').forEach(b => b.addEventListener('click', () => buy(b)));
-  hsheet.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { shopCat = b.dataset.cat; openShop(); }));
-  hsheet.querySelector('[data-hgo="close"]').addEventListener('click', closeSheet);
+  hsheet.querySelectorAll('[data-hbuy]').forEach(b => b.addEventListener('click', () => toggleCart(b.dataset.hbuy)));
+  hsheet.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => toggleCart(b.dataset.rm)));
+  hsheet.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { shopCat = b.dataset.cat; openShop(); hsheet.querySelector('.paper').scrollTop = 0; }));
+  hsheet.querySelector('[data-hgo="done"]').addEventListener('click', () => cart.size ? openConfirm() : closeSheet());
+  hsheet.querySelector('[data-hgo="clear"]')?.addEventListener('click', () => { cart.clear(); snd('tick'); openShop(); });
+}
+function toggleCart(id) {
+  if ((hs.owned[id] || 0) >= limitOf(id)) return;
+  if (cart.has(id)) { cart.delete(id); snd('tick'); } else { cart.add(id); snd('place'); }
+  openShop();
+}
+function openConfirm() {
+  const total = cartTotal(), coins = GD.coins(), after = coins - total, ok = after >= 0;
+  hsheet.innerHTML = `<div class="paper report furni confirm"><h3>确认购买</h3>
+    <ul class="confirm-list">${[...cart].map(id => `<li><span class="ic" data-ic="${id}"></span><b>${IT[id].name}</b><span>${IT[id].price} 枚</span><button data-rm="${id}" title="移出">×</button></li>`).join('')}</ul>
+    <p class="confirm-sum">一共 <b>${cart.size}</b> 件，合计 <b>${total}</b> 枚<br><small>兜里 ${coins} 枚 → 买完剩 <b class="${ok ? '' : 'neg'}">${after}</b> 枚</small></p>
+    ${ok ? '' : `<p class="warn">硬币还差 ${-after} 枚……去掉一些再买吧。</p>`}
+    <div class="row"><button class="btn ghost" data-hgo="back">← 再看看</button><button class="btn" data-hgo="pay" ${ok ? '' : 'disabled'}>确认购买</button></div></div>`;
+  hsheet.className = 'sheet on';
+  hsheet.querySelectorAll('[data-ic]').forEach(s => s.append(icon(s.dataset.ic, 48)));
+  hsheet.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { cart.delete(b.dataset.rm); snd('tick'); cart.size ? openConfirm() : openShop(); }));
+  hsheet.querySelector('[data-hgo="back"]').addEventListener('click', openShop);
+  hsheet.querySelector('[data-hgo="pay"]').addEventListener('click', pay);
+}
+function pay() {
+  const total = cartTotal(), items = [...cart];
+  if (!GD.spend(total)) { say(`硬币……还差 ${total - GD.coins()} 枚。`, 1600); return openConfirm(); }
+  for (const id of items) hs.owned[id] = (hs.owned[id] || 0) + 1;
+  cart.clear(); persist(); renderBox(); updateHud(); squish(3);
+  snd('coin'); setTimeout(() => snd('happy'), 250);
+  hsheet.innerHTML = `<div class="paper report furni confirm"><h3>买好啦！</h3>
+    <p>${items.map(id => IT[id].name).join('、')}<br>都放进<b>收纳箱</b>了，拖进房间摆好吧。</p>
+    <div class="row"><button class="btn" data-hgo="ok">去摆家具</button><button class="btn ghost" data-hgo="more">继续逛</button></div></div>`;
+  hsheet.querySelector('[data-hgo="ok"]').addEventListener('click', closeSheet);
+  hsheet.querySelector('[data-hgo="more"]').addEventListener('click', openShop);
+  say(items.includes('bed') ? '床！……要放哪里呢。' : items.length > 1 ? '好多东西……\n箱子都装满了。' : `${IT[items[0]].name}……\n放进箱子了。`, 2000);
 }
 function closeSheet() { hsheet.className = 'sheet'; }
-function buy(b) {
-  const id = b.dataset.hbuy, d = IT[id];
-  if (!GD.spend(d.price)) { b.classList.remove('no'); void b.offsetWidth; b.classList.add('no'); say(`硬币……还差 ${d.price - GD.coins()} 枚。`, 1600); return; }
-  hs.owned[id] = (hs.owned[id] || 0) + 1; persist();
-  hsheet.querySelector('.hcoins').textContent = GD.coins();
-  if (hs.owned[id] >= limitOf(id)) { b.classList.add('owned'); b.disabled = true; b.lastElementChild.textContent = '已经有了'; }
-  b.classList.add('got'); setTimeout(() => b.classList.remove('got'), 500);
-  renderBox(); updateHud(); squish(2.5); say(id === 'bed' ? '床！……要放哪里呢。' : `${d.name}……\n放进箱子了。`, 1600);
-}
 $('#openFurni').addEventListener('click', openShop);
 const comfort = () => hs.placed.reduce((s, p) => s + (IT[p.id].comfort || 0), 0);
 function updateHud() { $('#homeCoins').textContent = GD.coins(); $('#homeComfort').textContent = comfort(); }
