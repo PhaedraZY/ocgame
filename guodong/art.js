@@ -14,7 +14,7 @@ const C = {
 const LW = 1200, LH = 720;
 
 /* ---------------- back layer: walls, window, shelves, door ---------------- */
-function drawBack(p, decor = new Set()) {
+function drawBack(p, decor = new Set(), unl = {}) {
   const c = p.c;
   // wall + hand-dotted polka
   p.wash(S.rect(-10, -10, LW + 20, 350), { color: C.wall, blooms: 6, edge: 0, off: 0, amp: 0 });
@@ -61,9 +61,15 @@ function drawBack(p, decor = new Set()) {
   for (let i = 0; i < 18; i++) p.dot(p.rand(196, 228), p.rand(96, 116), .9, '#d8d2c4');
   p.draw(S.rect(196, 78, 32, 10, 3), { fill: '#d6b48a', w: 1.4 });
   p.draw(S.rect(198, 96, 28, 14, 2), { fill: C.white, w: 1 }); label('糖', 212, 107, 10);
+  if (unl.choco) {   // flour sack for the pancakes
+    p.draw(S.curve([[244, 120], [242, 100], [248, 90], [256, 94], [264, 88], [272, 96], [276, 120]], true, 6), { fill: '#f3ecdc', w: 1.5 });
+    p.ink([[248, 96], [270, 94]], { w: 1, color: C.soft });
+    label('面粉', 259, 112, 9);
+  } else {
   // little clover pot (decor)
   p.draw([[248, 120], [251, 104], [270, 104], [273, 120]], { fill: '#e9b9a4', w: 1.4 });
   for (const [x, y] of [[254, 98], [262, 94], [268, 100]]) p.draw(S.ell(x, y, 5, 4.5), { fill: C.apple, w: 1.1 });
+  }
   // wicker basket of green apples
   for (const [x, y] of [[62, 166], [84, 162], [106, 166], [74, 154], [96, 152]]) p.draw(S.ell(x, y, 12, 11), { fill: C.apple, w: 1.4 });
   p.ink([[84, 151], [86, 143]], { w: 1.3 });
@@ -78,7 +84,6 @@ function drawBack(p, decor = new Set()) {
   // honey jar (decor)
   p.draw(S.rect(228, 168, 36, 26, 9), { fill: '#f3d68b', w: 1.4 });
   p.draw(S.rect(232, 162, 28, 8, 3), { fill: '#e9c48f', w: 1.2 });
-
   // ---- back counter: cassette stove + bamboo steamer stand here ----
   p.draw(S.rect(28, 300, 278, 150, 6), { fill: C.cream, w: 2 });
   p.draw(S.rect(22, 292, 290, 14, 4), { fill: C.wood, w: 1.8 });
@@ -152,6 +157,25 @@ function drawBack(p, decor = new Set()) {
   for (let i = 0; i < 4; i++) p.wash(S.ell(p.rand(830, 906), p.rand(104, 196), p.rand(14, 26), p.rand(6, 10)), { color: '#ffffff', alpha: .05, edge: 0 });
   p.ink(S.rect(816, 90, 104, 116, 3), { w: 1.3, closed: true });
 
+  if (unl.burger) {   // little two-tier wall rack: pineapple jar on top, a bowl of eggs for frying below
+    p.c.save(); p.c.translate(619, 0); p.c.scale(.82, 1); p.c.translate(-612, 0);   // squeeze between curtain and fridge
+    for (const y of [248, 298]) { p.draw(S.rect(586, y, 52, 7, 2), { fill: C.wood, w: 1.5 }); p.ink([[592, y + 7], [600, y + 16]], { w: 1.3 }); p.ink([[632, y + 7], [624, y + 16]], { w: 1.3 }); }
+    p.ink([[588, 200], [588, 248]], { w: 1.2, color: C.soft }); p.ink([[636, 200], [636, 248]], { w: 1.2, color: C.soft });
+    p.draw(S.rect(594, 212, 36, 36, 9), { fill: '#f3f7f2', fillAlpha: .85, w: 1.5 });
+    for (const [x, y] of [[605, 230], [619, 233], [611, 240]]) { p.draw(S.ell(x, y, 8, 5.5), { fill: '#f6d76a', w: .9 }); p.dot(x, y, 1.8, '#f3f7f2'); }
+    p.draw(S.rect(597, 206, 30, 8, 3), { fill: '#e2c48c', w: 1.2 });
+    p.draw(S.ell(612, 290, 22, 9, 0, Math.PI).concat([[590, 290]]), { fill: '#e8f0f4', w: 1.4 });
+    for (const [x, y] of [[602, 284], [614, 281], [624, 285]]) p.draw(S.ell(x, y, 6.5, 8), { fill: '#fbf2e2', w: 1.1 });
+    p.ink(S.ell(612, 290, 22, 4), { w: 1.2, closed: true });
+    p.c.restore();
+  }
+  // hanging service bell (pull the rope / press space to serve)
+  p.draw(S.rect(846, 236, 50, 8, 3), { fill: C.wood, w: 1.5 }); p.ink([[852, 244], [862, 256]], { w: 1.3 });
+  p.ink([[880, 244], [880, 258]], { w: 1.2 });
+  p.draw(S.curve([[866, 286], [866, 272], [872, 260], [880, 258], [888, 260], [894, 272], [894, 286]], false).concat([[866, 286]]), { fill: C.gold, w: 1.7 });
+  p.draw(S.rect(862, 284, 36, 6, 3), { fill: '#e6c47c', w: 1.3 }); p.dot(880, 294, 3.5, C.gold, { line: C.line, w: 1 });
+  p.ink([[880, 296], [878, 322], [881, 340]], { w: 1.2, color: '#c9a77d' }); p.draw(S.ell(881, 344, 4, 5), { fill: '#e9b9a4', w: 1 });
+
   // ---- lamp ----
   for (const lx of [606]) {
     p.ink([[lx, -5], [lx + p.rand(-1, 1), 40]], { w: 1.4 });
@@ -189,7 +213,7 @@ function drawBack(p, decor = new Set()) {
 }
 
 /* ---------------- front layer: the counter ---------------- */
-function drawFront(p) {
+function drawFront(p, unl = {}) {
   // counter top
   p.draw(S.rect(26, 414, 846, 32, 8), { fill: C.wood, w: 2.2 });
   p.ink([[40, 424], [858, 426]], { w: 1, color: C.woodD });
@@ -219,27 +243,39 @@ function drawFront(p) {
   p.dot(336, 403, 3, '#c9ab83', { line: C.line, w: .9 });
   p.ink([[222, 398], [314, 398]], { w: .8, color: '#c9ab83' });
   // three serving plates
-  for (const px of [410, 490, 570]) {
-    p.wash(S.ell(px, 412, 36, 6), { color: '#7a6c66', alpha: .1, edge: 0, off: 0 });
-    p.draw(S.ell(px, 408, 34, 8), { fill: '#ffffff', w: 1.6 });
-    p.ink(S.ell(px, 408, 24, 5), { w: 1, closed: true, color: C.soft });
-    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; p.dot(px + Math.cos(a) * 29, 408 + Math.sin(a) * 6.5, 1.3, C.dot); }
+  for (const px of [392, 458, 524]) {
+    p.wash(S.ell(px, 412, 32, 6), { color: '#7a6c66', alpha: .1, edge: 0, off: 0 });
+    p.draw(S.ell(px, 408, 30, 8), { fill: '#ffffff', w: 1.6 });
+    p.ink(S.ell(px, 408, 21, 5), { w: 1, closed: true, color: C.soft });
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; p.dot(px + Math.cos(a) * 25.5, 408 + Math.sin(a) * 6.5, 1.3, C.dot); }
   }
   // caramel squeeze bottle
-  p.draw(S.curve([[634, 414], [632, 378], [638, 368], [662, 368], [668, 378], [666, 414]], true, 6), { fill: '#c99868', w: 1.7 });
-  p.draw([[642, 368], [646, 352], [654, 352], [658, 368]], { fill: '#f1e3cf', w: 1.3 });
-  p.ink([[650, 352], [650, 342]], { w: 2, color: C.line });
-  p.draw(S.rect(638, 386, 24, 16, 3), { fill: C.white, w: 1 });
-  { const c = p.c; c.save(); c.font = '9px "LXGW WenKai", serif'; c.fillStyle = C.line; c.textAlign = 'center'; c.fillText('焦糖', 650, 398); c.restore(); }
-  // tip jar
-  p.draw(S.rect(718, 372, 50, 44, 10), { fill: '#eef5f8', fillAlpha: .7, w: 1.6 });
-  for (const [x, y] of [[730, 406], [744, 404], [756, 407], [737, 396], [751, 397]]) p.dot(x, y, 5, C.gold, { line: C.line, w: .8 });
-  p.draw(S.rect(714, 366, 58, 9, 3), { fill: '#d6b48a', w: 1.3 });
-  { const c = p.c; c.save(); c.font = '10px "LXGW WenKai", serif'; c.fillStyle = C.soft; c.textAlign = 'center'; c.fillText('小费', 743, 390); c.restore(); }
-  // service bell
-  p.draw(S.ell(842, 404, 22, 18, Math.PI, Math.PI * 2).concat([[820, 404]]), { fill: C.gold, w: 1.8 });
-  p.draw(S.rect(816, 404, 52, 8, 3), { fill: C.dark, w: 1.4 });
-  p.dot(842, 384, 3.5, C.gold, { line: C.line, w: 1 });
+  const bottle = (cx, col, txt) => {
+    p.draw(S.curve([[cx - 16, 414], [cx - 18, 378], [cx - 12, 368], [cx + 12, 368], [cx + 18, 378], [cx + 16, 414]], true, 6), { fill: col, w: 1.7 });
+    p.draw([[cx - 8, 368], [cx - 4, 352], [cx + 4, 352], [cx + 8, 368]], { fill: '#f1e3cf', w: 1.3 });
+    p.ink([[cx, 352], [cx, 342]], { w: 2, color: C.line });
+    p.draw(S.rect(cx - 12, 386, 24, 16, 3), { fill: C.white, w: 1 });
+    const c = p.c; c.save(); c.font = '9px "LXGW WenKai", serif'; c.fillStyle = C.line; c.textAlign = 'center'; c.fillText(txt, cx, 398); c.restore();
+  };
+  bottle(690, '#c99868', '焦糖');
+  if (unl.choco) bottle(730, '#7a5240', '可可');
+  if (unl.burger) {
+    // wicker bread basket with buns
+    p.draw(S.curve([[570, 396], [572, 414], [616, 414], [618, 396]], false).concat([[570, 396]]), { fill: '#d9b98a', w: 1.6 });
+    for (let x = 576; x < 616; x += 8) p.ink([[x, 398], [x + 2, 412]], { w: .8, color: '#b8956a' });
+    for (const [x, y] of [[584, 392], [602, 391], [593, 386]]) p.draw(S.curve([[x - 10, y + 4], [x - 9, y - 3], [x, y - 7], [x + 9, y - 3], [x + 10, y + 4]], true, 4), { fill: '#e6b876', w: 1.1 });
+    p.dot(590, 384, .9, '#fffaf0'); p.dot(598, 383, .9, '#fffaf0');
+    // a bowl of lettuce
+    p.draw(S.ell(644, 404, 20, 8, 0, Math.PI).concat([[624, 404]]), { fill: '#f3f7f2', w: 1.4 });
+    for (const [x, y] of [[634, 400], [644, 396], [654, 400], [640, 402], [650, 403]]) p.draw(S.ell(x, y, 7, 5), { fill: '#a9d06a', w: .9 });
+    p.ink(S.ell(644, 404, 20, 3.5), { w: 1.1, closed: true });
+  } else {
+    // tip jar
+    p.draw(S.rect(790, 372, 50, 44, 10), { fill: '#eef5f8', fillAlpha: .7, w: 1.6 });
+    for (const [x, y] of [[802, 406], [816, 404], [828, 407], [809, 396], [823, 397]]) p.dot(x, y, 5, C.gold, { line: C.line, w: .8 });
+    p.draw(S.rect(786, 366, 58, 9, 3), { fill: '#d6b48a', w: 1.3 });
+    const c = p.c; c.save(); c.font = '10px "LXGW WenKai", serif'; c.fillStyle = C.soft; c.textAlign = 'center'; c.fillText('小费', 815, 390); c.restore();
+  }
 }
 
 /* ---------------- a customer, seen from behind (hedgehog) ---------------- */
@@ -342,12 +378,12 @@ function drawDish(p, base, tops = []) {
 
 /* ---------------- decorations (drawn into the back layer once bought) ---------------- */
 const DECOR = [
-  { id: 'chime', name: '窗边风铃', price: 10, line: '风一吹就叮叮响。\n……耳朵会跟着转。' },
-  { id: 'lamp', name: '兔兔小夜灯', price: 12, line: '晚上，窗台会亮。\n像有另一只小兔在。' },
-  { id: 'frame', name: '挂画：主人和我', price: 14, line: '画的是……主人，\n和兔子时候的我。' },
-  { id: 'rug', name: '波点地毯', price: 14, line: '软的。\n可以在上面打滚。' },
-  { id: 'sapling', name: '青苹果小树', price: 16, line: '种在店里。\n明年，会结苹果吗？' },
-  { id: 'lights', name: '星星串灯', price: 18, line: '一闪一闪。\n店里像过节一样。' },
+  { id: 'chime', name: '窗边风铃', price: 60, line: '风一吹就叮叮响。\n……耳朵会跟着转。' },
+  { id: 'lamp', name: '兔兔小夜灯', price: 90, line: '晚上，窗台会亮。\n像有另一只小兔在。' },
+  { id: 'frame', name: '挂画：主人和我', price: 120, line: '画的是……主人，\n和兔子时候的我。' },
+  { id: 'rug', name: '波点地毯', price: 150, line: '软的。\n可以在上面打滚。' },
+  { id: 'sapling', name: '青苹果小树', price: 240, line: '种在店里。\n明年，会结苹果吗？' },
+  { id: 'lights', name: '星星串灯', price: 300, line: '一闪一闪。\n店里像过节一样。' },
 ];
 function drawDecor(p, d) {
   if (d.has('lights')) {
@@ -408,7 +444,8 @@ const BOX = {
   steamer: [166, 168, 124, 138],
   bowl:    [104, 334, 112, 86],
   board:   [212, 356, 124, 56],
-  plate0:  [370, 334, 80, 80], plate1: [450, 334, 80, 80], plate2: [530, 334, 80, 80],
+  plate0:  [352, 334, 80, 80], plate1: [418, 334, 80, 80], plate2: [484, 334, 80, 80],
+  griddle: [752, 350, 120, 70],
   fridge0: [656, 284, 50, 54], fridge1: [710, 284, 50, 54],
 };
 const STEEL = '#dfe4e6', BAMBOO = '#e6cc98', CUSTARD = '#f6e3a8', CARAMEL = '#b98150', JELLY = '#b7d86d';
@@ -469,13 +506,14 @@ function drawSteamer(p, s) {
 function drawBowl(p, s) {
   // back rim + inside
   p.draw(S.ell(56, 44, 48, 12), { fill: '#ece5d6', w: 1.5 });
-  const any = s.egg || s.milk || s.sugar;
+  const any = s.egg || s.milk || s.sugar || s.flour;
   if (any) {
     const k = s.mixed ? 1 : s.stir / 3;
     const base = s.milk ? '#fffdf6' : '#f7efd9';
-    const mix = k > 0 ? (k >= 1 ? CUSTARD : '#fbf0cf') : base;
+    const mix = k > 0 ? (k >= 1 ? (s.flour ? '#f1d6a4' : CUSTARD) : '#fbf0cf') : (s.flour && !s.milk ? '#f7f3ea' : base);
     p.draw(S.ell(56, 47, 40, 8), { fill: mix, w: 1, line: C.soft });
     if (!s.mixed && s.egg && s.stir < 2) { p.draw(S.ell(46, 46, 7, 4.5), { fill: '#f5c35a', w: 1, line: '#d9a043' }); p.draw(S.ell(64, 48, 7, 4.5), { fill: '#f5c35a', w: 1, line: '#d9a043' }); }
+    if (!s.mixed && s.flour && s.stir < 2) p.wash(S.ell(58, 46, 16, 4), { color: '#ffffff', edge: 0, alpha: .9 });
     if (!s.mixed && s.sugar && s.stir < 2) for (let i = 0; i < 9; i++) p.dot(30 + p.rand(0, 52), 44 + p.rand(0, 7), .9, '#ffffff', { line: '#cfc6b4', w: .4 });
     if (k > 0) p.ink(S.curve([[34, 47], [46, 43], [58, 50], [70, 44], [80, 48]]), { w: 1, color: '#e3cf98' });
   }
@@ -505,6 +543,17 @@ function drawBoard(p, s) {
 
 function drawPlateItem(p, it) {
   if (!it) return;
+  if (it.dish === 'burger') {
+    let y = 70; const L = it.layers || [];
+    L.forEach((id, i) => { const tilt = it.messy ? (i % 2 ? .18 : -.14) : 0; burgerLayer(p, id, 40 + (it.messy ? (i % 2 ? 5 : -5) : 0), y, tilt); y -= LAYER_H[id]; });
+    return;
+  }
+  if (it.dish === 'choco') {
+    for (const [y, w] of [[68, 22], [62, 21]]) { p.draw(S.curve([[40 - w, y], [40 - w, y - 4], [40 + w, y - 4], [40 + w, y]], true, 4).concat(S.ell(40, y, w, 3, 0, Math.PI)), { fill: '#d9a35c', w: 1.1 }); p.draw(S.ell(40, y - 4, w, 3), { fill: '#e6b876', w: 1 }); }
+    p.draw(S.rect(35, 50, 9, 6, 1.5), { fill: '#fbefc4', w: .8 });
+    if (it.sauce) p.draw(S.curve([[22, 57], [30, 55], [36, 60], [44, 54], [52, 59], [58, 56], [57, 62], [50, 60], [46, 66], [40, 60], [32, 64], [26, 60]], true, 4), { fill: '#6e4634', w: 1 });
+    return;
+  }
   if (it.dish === 'pudding') {
     p.draw(S.curve([[22, 70], [24, 48], [30, 40], [50, 40], [56, 48], [58, 70]], false).concat([[22, 70]]), { fill: CUSTARD, w: 1.5 });
     p.wash(S.ell(32, 54, 3, 7, 0, 6.29, .2), { color: '#ffffff', edge: 0, alpha: .7 });
@@ -518,9 +567,54 @@ function drawPlateItem(p, it) {
     p.wash(S.ell(27, 50, 3, 7, 0, 6.29, .4), { color: '#ffffff', edge: 0, alpha: .8 });
   }
 }
+/* double griddle on the counter: two wells, each frying one thing */
+function friedThing(p, cx, cy, sl) {
+  if (!sl) return;
+  const burnt = sl.state === 'burnt', done = sl.state === 'done';
+  if (sl.item === 'egg') {
+    const white = S.curve([[cx - 16, cy], [cx - 12, cy - 5], [cx - 2, cy - 7], [cx + 10, cy - 6], [cx + 17, cy - 1], [cx + 12, cy + 4], [cx, cy + 5], [cx - 12, cy + 4]], true, 5);
+    p.draw(white, { fill: burnt ? '#8a6a52' : done ? '#fffaf0' : '#f4f1ea', fillAlpha: done || burnt ? 1 : .75, w: 1 });
+    p.draw(S.ell(cx + 1, cy - 1, 5, 3.5), { fill: burnt ? '#5d4434' : '#f5b84a', w: .9 });
+  } else if (sl.item === 'pine') {
+    p.draw(S.ell(cx, cy, 15, 6), { fill: burnt ? '#6e5646' : done ? '#e9b44c' : '#f6d76a', w: 1.1 });
+    p.draw(S.ell(cx, cy, 4.5, 2), { fill: '#3f423d', w: .8 });
+    if (done) for (const dx of [-8, 0, 8]) p.ink([[cx + dx - 3, cy - 4], [cx + dx + 3, cy + 4]], { w: 1, color: '#b9802f' });
+  } else if (sl.item === 'cake') {
+    const top = burnt ? '#6e5646' : (sl.state === 'cooking2' || done) ? '#d9a35c' : '#f3dcae';
+    p.draw(S.ell(cx, cy, 20, 6.5), { fill: top, w: 1.1 });
+    if (sl.state === 'cooking' || sl.state === 'flip') for (let i = 0; i < 5; i++) p.dot(cx + p.rand(-12, 12), cy + p.rand(-3, 3), 1.2, '#fbefd6', { line: '#d9b98a', w: .4 });
+    if (sl.state === 'flip') p.wash(S.ell(cx, cy + 4, 20, 2.5), { color: '#c9893f', edge: 0, alpha: .9 });
+  }
+}
+function drawGriddle(p, slots) {
+  // a low cast-iron double pan with wooden handles, seen from slightly above
+  p.wash(S.ell(60, 64, 60, 6), { color: '#7a6c66', alpha: .14, edge: 0, off: 0 });
+  p.draw(S.rect(-2, 44, 14, 7, 3), { fill: '#b8916a', w: 1.2 }); p.draw(S.rect(108, 44, 14, 7, 3), { fill: '#b8916a', w: 1.2 });
+  p.draw(S.rect(8, 30, 104, 32, 12), { fill: '#7d817a', w: 1.7 });
+  p.ink([[14, 56], [106, 56]], { w: 1, color: '#9da19a' });
+  for (const [i, cx] of [[0, 35], [1, 85]]) {
+    p.draw(S.ell(cx, 44, 23, 11), { fill: '#5b5f59', w: 1.3 });
+    p.ink(S.ell(cx, 45, 18, 7.5, Math.PI * 1.1, Math.PI * 1.6), { w: 1, color: '#8b8f88' });
+    friedThing(p, cx, 44, slots[i]);
+    const sl = slots[i];
+    if (sl && sl.state !== 'burnt') for (const dx of [-6, 4]) p.ink([[cx + dx, 30], [cx + dx + 3, 24], [cx + dx, 18]], { w: 1, color: '#ffffffaa' });
+  }
+}
+const LAYER_H = { bunB: 9, lettuce: 4, pine: 5, egg: 5, cheese: 4, bunT: 15 };
+const BURGER_LAYERS = ['bunB', 'lettuce', 'pine', 'egg', 'bunT'];
+function burgerLayer(p, id, cx, y, tilt) {     // y = bottom of this layer
+  p.c.save(); p.c.translate(cx, y); p.c.rotate(tilt);
+  if (id === 'bunB') p.draw(S.curve([[-20, 0], [-21, -6], [-18, -9], [18, -9], [21, -6], [20, 0]], true, 4), { fill: '#e6b876', w: 1.2 });
+  if (id === 'lettuce') p.draw(S.curve([[-23, -1], [-16, -5], [-8, -2], [0, -5], [8, -2], [16, -5], [23, -1], [16, 1], [-16, 1]], true, 4), { fill: '#a9d06a', w: 1 });
+  if (id === 'pine') { p.draw(S.rect(-17, -5, 34, 5, 2), { fill: '#e9b44c', w: 1 }); p.ink([[-8, -4], [-4, -1]], { w: .9, color: '#b9802f' }); p.ink([[4, -4], [8, -1]], { w: .9, color: '#b9802f' }); }
+  if (id === 'egg') { p.draw(S.curve([[-20, 0], [-16, -4], [-4, -6], [10, -5], [20, -1], [10, 1], [-10, 1]], true, 4), { fill: '#fffaf0', w: 1 }); p.draw(S.ell(2, -3, 5, 2.5), { fill: '#f5b84a', w: .8 }); }
+  if (id === 'cheese') p.draw([[-19, -4], [19, -4], [21, 0], [14, 3], [8, 0], [-8, 0], [-14, 4], [-21, 0]], { fill: '#f6d76a', w: 1 });
+  if (id === 'bunT') { p.draw(S.curve([[-21, 0], [-20, -8], [-12, -15], [0, -17], [12, -15], [20, -8], [21, 0]], false).concat([[-21, 0]]), { fill: '#e6b876', w: 1.3 }); for (const [x, yy] of [[-8, -11], [0, -14], [8, -11], [-3, -8], [6, -7]]) p.dot(x, yy, 1.1, '#fffaf0'); }
+  p.c.restore();
+}
 function drawOrder(p, dish) {
   p.draw(S.ell(40, 72, 34, 8), { fill: '#ffffff', w: 1.4 });
-  drawPlateItem(p, { dish, caramel: true });
+  drawPlateItem(p, { dish, caramel: true, sauce: true, layers: BURGER_LAYERS });
 }
 
 function drawMagnet(p, slot) {
@@ -543,6 +637,13 @@ function drawCarry(p, id) {
     case 'batter': for (const x of [20, 40]) { p.draw([[x - 9, 30], [x + 9, 30], [x + 7, 46], [x - 7, 46]], { fill: '#f7f1e2', w: 1.2 }); p.draw(S.ell(x, 30, 9, 3), { fill: '#fbefc4', w: .9 }); } break;
     case 'mold': p.draw(S.rect(10, 26, 40, 22, 6), { fill: '#e3e8ea', w: 1.3 }); p.draw(S.ell(30, 27, 18, 5), { fill: '#cfe597', w: 1 }); break;
     case 'caramel': p.draw(S.curve([[22, 50], [21, 26], [26, 20], [34, 20], [39, 26], [38, 50]], true, 6), { fill: '#c99868', w: 1.3 }); p.ink([[30, 20], [30, 10]], { w: 1.8 }); break;
+    case 'pine': p.draw(S.ell(30, 34, 16, 7), { fill: '#f6d76a', w: 1.2 }); p.draw(S.ell(30, 34, 5, 2.2), { fill: '#fffdf6', w: .8 }); break;
+    case 'flour': p.draw(S.curve([[14, 50], [12, 26], [20, 16], [30, 20], [40, 14], [48, 26], [46, 50]], true, 6), { fill: '#f3ecdc', w: 1.3 }); break;
+    case 'bunB': case 'lettuce': case 'cheese': case 'bunT': case 'eggC': case 'pineC':
+      burgerLayer(p, id === 'eggC' ? 'egg' : id === 'pineC' ? 'pine' : id, 30, 40, 0); break;
+    case 'cakeC': p.draw(S.ell(30, 36, 20, 6.5), { fill: '#d9a35c', w: 1.1 }); break;
+    case 'chocoB': p.draw(S.curve([[22, 50], [21, 26], [26, 20], [34, 20], [39, 26], [38, 50]], true, 6), { fill: '#7a5240', w: 1.3 }); p.ink([[30, 20], [30, 10]], { w: 1.8 }); break;
+    case 'burger': case 'choco':
     case 'pudding': case 'jelly': p.c.save(); p.c.translate(5, 2); p.c.scale(.62, .62); p.draw(S.ell(40, 72, 34, 8), { fill: '#ffffff', w: 1.4 }); drawPlateItem(p, carryItem || { dish: id, caramel: true }); p.c.restore(); break;
   }
 }
@@ -557,5 +658,5 @@ const CUSTOMERS = [
   { id: 'sheep', name: '绵绵', pat: 1.15, tip: 1, draw: custSheep, ok: '咩～\n谢谢小兔店长。', bad: '咩？……\n我点的是别的哦。', leave: '咩……（慢慢走掉了）' },
 ];
 
-return { C, LW, LH, BOX, drawBack, drawFront, drawDish, drawDecor, decorIcon, DECOR, CUSTOMERS, drawStove, drawSteamer, drawBowl, drawBoard, drawPlateItem, drawOrder, drawMagnet, drawCarry, setCarryItem };
+return { C, LW, LH, BOX, drawBack, drawFront, drawDish, drawDecor, decorIcon, DECOR, CUSTOMERS, drawStove, drawSteamer, drawBowl, drawBoard, drawPlateItem, drawOrder, drawMagnet, drawCarry, setCarryItem, drawGriddle };
 })();

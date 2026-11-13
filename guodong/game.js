@@ -1,7 +1,9 @@
 /* game.js — 果冻的小店 · 经营玩法（第 1 阶段）
    原料 → 加工（计时，会做坏）→ 装盘 → 出餐。访客点设备，果冻蹦过去做；客人在门口排队。
    牛奶布丁：鸡蛋+牛奶+糖 → 搅拌碗搅 3 下 → 倒进蒸笼蒸 → 装盘 → 淋焦糖
-   青苹果果冻：青苹果 → 砧板切 3 下 → 下锅 + 吉利丁 → 煮 → 倒模放冰箱冷藏 → 脱模装盘 */
+   青苹果果冻：青苹果 → 砧板切 3 下 → 下锅 + 吉利丁 → 煮 → 倒模放冰箱冷藏 → 脱模装盘
+   菠萝鸡蛋堡（第 3 天）：挂架上的菠萝、鸡蛋拿去平底锅煎 → 面包篮放面包 → 生菜 → 煎菠萝 → 煎蛋 → 再点面包篮盖顶（叠错重来）
+   巧克力松饼（第 5 天）：鸡蛋+牛奶+面粉 → 搅 3 下 → 倒上平底锅 → 冒泡翻面 → 装盘 → 淋巧克力酱 */
 (() => {
 'use strict';
 const { Pen, grainTile } = Sketch;
@@ -17,14 +19,14 @@ const pct = (v, total) => (v / total * 100) + '%';
 
 /* ================= save ================= */
 const SAVE_KEY = 'guodong.shop.v2';
-const fresh = () => ({ day: 1, coins: 0, decor: [], served: 0, finished: false, stars: {} });
+const fresh = () => ({ day: 1, coins: 0, decor: [], served: 0, finished: false, stars: {}, seen: [], taught: {} });
 let save = (() => { try { return Object.assign(fresh(), JSON.parse(localStorage.getItem(SAVE_KEY)) || {}); } catch (_) { return fresh(); } })();
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (_) {} };
 // test cheats: ?coins=99999 adds coins, ?day=2 jumps to a day (handy for trying the cottage)
 { const q = new URLSearchParams(location.search);
   if (q.has('coins')) save.coins += Math.max(0, parseInt(q.get('coins'), 10) || 0);
   if (q.has('day')) save.day = Math.max(1, parseInt(q.get('day'), 10) || 1);
-  if (q.has('coins') || q.has('day')) { persist(); history.replaceState(null, '', location.pathname); } }
+  if (q.has('coins') || q.has('day')) { persist(); history.replaceState(null, '', location.pathname + (q.has('debug') ? '?debug' : '')); } }
 
 /* ================= painting ================= */
 const shop = $('#shop'), back = $('#back'), front = $('#front');
@@ -40,17 +42,21 @@ function paint(cv, w, h, scale, fn, seed, withGrain = true) {
 function paintShop() {
   K = shop.clientWidth / LW; DPR = Math.min(2, devicePixelRatio || 1);
   const decor = new Set(save.decor);
-  paint(back, LW, LH, K, p => A.drawBack(p, decor), 11);
-  paint(front, LW, LH, K, p => A.drawFront(p), 23);
+  const unl = { burger: isOpen('burger'), choco: isOpen('choco') };
+  paint(back, LW, LH, K, p => A.drawBack(p, decor, unl), 11);
+  paint(front, LW, LH, K, p => A.drawFront(p, unl), 23);
+  for (const [id, sp] of Object.entries(SPOTS)) if (sp.need) spotEls[id].style.display = isOpen(sp.need) ? '' : 'none';
+  stCanvas.griddle.style.display = unl.burger ? '' : 'none';
   Object.keys(A.BOX).forEach(renderStation);
   for (const cu of customers) renderCustomer(cu);
   renderCarry();
 }
 
 /* ================= kitchen state ================= */
-const T = { steam: 6, steamBurn: 8, cook: 5, cookBurn: 8, chill: 8 };
+const T = { steam: 6, steamBurn: 8, cook: 5, cookBurn: 8, chill: 8, fry: 4, fryBurn: 6, cake: 3, flipBurn: 4, cakeBurn: 5 };
 const freshKit = () => ({
-  bowl: { egg: false, milk: false, sugar: false, stir: 0, mixed: false },
+  bowl: { egg: false, milk: false, sugar: false, flour: false, stir: 0, mixed: false },
+  griddle: [null, null],
   board: { state: 'empty', chop: 0 },
   pot: { apple: false, gel: false, state: 'idle', t: 0 },
   steamer: { state: 'empty', t: 0 },
@@ -78,6 +84,7 @@ function renderStation(key) {
   else if (key === 'bowl') fn = p => A.drawBowl(p, kit.bowl);
   else if (key === 'board') fn = p => A.drawBoard(p, kit.board);
   else if (key.startsWith('plate')) { const it = kit.plates[+key.slice(5)]; fn = p => A.drawPlateItem(p, it && it !== RES ? it : null); }
+  else if (key === 'griddle') fn = p => A.drawGriddle(p, kit.griddle.map(sl => sl === RES ? null : sl));
   else if (key.startsWith('fridge')) { const sl = kit.fridge[+key.slice(6)]; fn = p => A.drawMagnet(p, sl.state === RES ? { state: 'empty' } : sl); }
   paint(cv, w, h, K, fn, 5 + key.length);
   updateClears();
@@ -85,7 +92,7 @@ function renderStation(key) {
 
 /* timer rings */
 const rings = {};
-const RING_AT = { stove: [124, 222], steamer: [276, 184], fridge0: [700, 290], fridge1: [754, 290] };
+const RING_AT = { stove: [124, 222], steamer: [276, 184], fridge0: [700, 290], fridge1: [754, 290], griddle0: [787, 360], griddle1: [837, 360] };
 for (const [k, [x, y]] of Object.entries(RING_AT)) {
   const r = document.createElement('div'); r.className = 'ring'; r.style.left = pct(x, LW); r.style.top = pct(y, LH);
   r.innerHTML = '<i></i>'; $('#rings').appendChild(r); rings[k] = r;
@@ -103,12 +110,20 @@ const SPOTS = {
   steamer: { r: [168, 192, 122, 112], x: 228, tag: '蒸笼' },
   bowl:    { r: [104, 360, 112, 60], x: 160, tag: '搅拌碗' },
   board:   { r: [212, 380, 140, 36], x: 270, tag: '砧板' },
-  plate0:  { r: [372, 356, 76, 60], x: 410, tag: '盘子' },
-  plate1:  { r: [452, 356, 76, 60], x: 490, tag: '盘子' },
-  plate2:  { r: [532, 356, 76, 60], x: 570, tag: '盘子' },
-  caramel: { r: [620, 334, 62, 84], x: 650, tag: '焦糖' },
+  pine:    { r: [598, 202, 42, 48], x: 619, tag: '菠萝片', need: 'burger' },
+  eggF:    { r: [598, 262, 42, 40], x: 619, tag: '煎蛋用的鸡蛋', need: 'burger' },
+  flour:   { r: [240, 72, 40, 52], x: 260, tag: '面粉', need: 'choco' },
+  plate0:  { r: [359, 356, 66, 60], x: 392, tag: '盘子' },
+  plate1:  { r: [425, 356, 66, 60], x: 458, tag: '盘子' },
+  plate2:  { r: [491, 356, 66, 60], x: 524, tag: '盘子' },
+  bread:   { r: [566, 372, 54, 44], x: 594, tag: '面包篮', need: 'burger' },
+  lettuce: { r: [622, 380, 46, 36], x: 644, tag: '生菜', need: 'burger' },
+  caramel: { r: [670, 334, 40, 84], x: 690, tag: '焦糖' },
+  choco:   { r: [711, 334, 38, 84], x: 730, tag: '巧克力酱', need: 'choco' },
+  griddle0: { r: [756, 372, 54, 46], x: 787, tag: '平底锅', need: 'burger' },
+  griddle1: { r: [810, 372, 56, 46], x: 837, tag: '平底锅', need: 'burger' },
   fridge:  { r: [652, 150, 136, 182], x: 715, tag: '冰箱' },
-  bell:    { r: [814, 374, 60, 42], x: 842, tag: '出餐铃（空格）' },
+  bell:    { r: [850, 238, 52, 112], x: 856, tag: '出餐铃（空格）' },
 };
 const spotEls = {};
 for (const [id, s] of Object.entries(SPOTS)) {
@@ -118,7 +133,7 @@ for (const [id, s] of Object.entries(SPOTS)) {
   b.addEventListener('click', e => { e.stopPropagation(); click(id); });
   $('#spots').appendChild(b); spotEls[id] = b;
 }
-const CLEAR = { bowl: [200, 352], board: [334, 376], stove: [150, 238], plate0: [438, 356], plate1: [518, 356], plate2: [598, 356] };
+const CLEAR = { bowl: [200, 352], board: [334, 376], stove: [150, 238], plate0: [420, 358], plate1: [486, 358], plate2: [552, 358] };
 const clearEls = {};
 for (const [k, [x, y]] of Object.entries(CLEAR)) {
   const b = document.createElement('button'); b.className = 'clear'; b.title = '倒掉'; b.textContent = '×';
@@ -128,7 +143,7 @@ for (const [k, [x, y]] of Object.entries(CLEAR)) {
 }
 function updateClears() {
   const b = kit.bowl;
-  clearEls.bowl.classList.toggle('on', b.egg || b.milk || b.sugar);
+  clearEls.bowl.classList.toggle('on', b.egg || b.milk || b.sugar || b.flour);
   clearEls.board.classList.toggle('on', kit.board.state !== 'empty');
   clearEls.stove.classList.toggle('on', kit.pot.state === 'idle' && (kit.pot.apple || kit.pot.gel));
   kit.plates.forEach((it, i) => clearEls['plate' + i].classList.toggle('on', !!it && it !== RES));
@@ -193,11 +208,11 @@ function updateGirl(dt, now) {
 }
 
 /* ================= actions ================= */
-const NAME = { egg: '鸡蛋', milk: '牛奶', sugar: '糖', apple: '青苹果', gel: '吉利丁' };
+const NAME = { egg: '鸡蛋', milk: '牛奶', sugar: '糖', flour: '面粉', apple: '青苹果', gel: '吉利丁' };
 function no(msg) { say(msg, 1800); mood('busy', .8); return false; }
 function act(steps) {
-  if (G.queue.length >= 5) { say('……等、等一下，记不住了。', 1400); return; }
-  G.queue.push({ steps }); updateHints();
+  if (G.queue.length >= 5) { say('……等、等一下，记不住了。', 1400); return false; }
+  G.queue.push({ steps }); updateHints(); return true;
 }
 const sx = id => SPOTS[id].x;
 const freePlate = () => kit.plates.findIndex(p => p === null);
@@ -207,14 +222,18 @@ function click(id) {
   pulse(id);
   const b = kit.bowl, pot = kit.pot, stm = kit.steamer;
   switch (id) {
-    case 'egg': case 'milk': case 'sugar': {
-      if (b.mixed) return no('碗里是搅好的布丁液了。\n先倒进蒸笼吧。');
-      if (b[id]) return no(`碗里已经有${NAME[id]}了。`);
-      return act([{ x: sx(id), fn: () => carry(id) }, { x: sx('bowl'), fn: () => {
-        carry(null);
-        if (kit.bowl[id] || kit.bowl.mixed) return no(`${NAME[id]}……放不下了。`);
-        kit.bowl[id] = true; renderStation('bowl'); sparkle('bowl'); snd('place');
-      } }]);
+    case 'egg': case 'milk': case 'sugar': case 'flour': return toBowl(id);
+    case 'pine': return fry('pine');
+    case 'eggF': return fry('egg');
+    case 'bread': return breadClick();
+    case 'lettuce': return layerFrom('lettuce');
+    case 'griddle': return click('griddle' + bestGriddle());
+    case 'griddle0': case 'griddle1': return griddleClick(+id.slice(7));
+    case 'choco': {
+      const pi = kit.plates.findIndex(it => it && it !== RES && it.dish === 'choco' && !it.sauce);
+      if (pi < 0) return no('没有要淋巧克力的松饼。');
+      return act([{ x: sx('choco'), fn: () => carry('chocoB') },
+                  { x: sx('plate' + pi), fn: () => { carry(null); const it = kit.plates[pi]; if (!it || it === RES || it.sauce) return false; it.sauce = true; renderStation('plate' + pi); sparkle('plate' + pi); snd('pour'); } }]);
     }
     case 'apple': {
       if (kit.board.state !== 'empty') return no('砧板上已经有东西了。');
@@ -234,18 +253,20 @@ function click(id) {
       } }]);
     }
     case 'bowl': {
+      if (b.mixed && b.flour) return pourBatter();
       if (b.mixed) {
         if (stm.state !== 'empty') return no(stm.state === 'steaming' ? '蒸笼正在蒸……' : '先把蒸笼里的拿出来。');
         stm.state = RES;
         return act([{ x: sx('bowl'), fn: () => { carry('batter'); kit.bowl = freshKit().bowl; renderStation('bowl'); } },
                     { x: sx('steamer'), fn: () => { carry(null); kit.steamer = { state: 'steaming', t: 0 }; renderStation('steamer'); snd('pour'); say('蒸、蒸上了。', 1200); } }]);
       }
-      if (b.egg && b.milk && b.sugar) return act([{ x: sx('bowl'), fn: () => {
-        const bb = kit.bowl; if (bb.mixed || !(bb.egg && bb.milk && bb.sugar)) return false;
-        bb.stir++; snd('stir'); if (bb.stir >= 3) { bb.mixed = true; say('搅匀了！', 1000); } renderStation('bowl'); squish(2);
+      if (b.egg && b.milk && (b.sugar || b.flour)) return act([{ x: sx('bowl'), fn: () => {
+        const bb = kit.bowl; if (bb.mixed || !(bb.egg && bb.milk && (bb.sugar || bb.flour))) return false;
+        bb.stir++; snd('stir'); if (bb.stir >= 3) { bb.mixed = true; say(bb.flour ? '面糊搅好了！' : '搅匀了！', 1000); } renderStation('bowl'); squish(2);
       } }]);
+      if (b.flour) return no(`松饼面糊要：鸡蛋、牛奶、面粉。\n还差${['egg', 'milk'].filter(k => !b[k]).map(k => NAME[k]).join('、')}。`);
       const miss = ['egg', 'milk', 'sugar'].filter(k => !b[k]).map(k => NAME[k]).join('、');
-      return no(`布丁要：鸡蛋、牛奶、糖。\n还差${miss}。`);
+      return no(`布丁要：鸡蛋、牛奶、糖。\n还差${miss}。` + (isOpen('choco') ? '\n（松饼是鸡蛋、牛奶、面粉）' : ''));
     }
     case 'board': {
       const bd = kit.board;
@@ -261,7 +282,7 @@ function click(id) {
     }
     case 'stove': {
       if (pot.state === 'cooking') return no('还在煮……');
-      if (pot.state === 'burnt') return act([{ x: sx('stove'), fn: () => { kit.pot = freshKit().pot; renderStation('stove'); setRing('stove'); say('……倒掉了。（耳朵耷拉）', 1500); mood('sad', 1.5); } }]);
+      if (pot.state === 'burnt') return act([{ x: sx('stove'), fn: () => { kit.pot = freshKit().pot; renderStation('stove'); setRing('stove'); waste(3, 'stove'); say('……倒掉了。（耳朵耷拉）', 1500); mood('sad', 1.5); } }]);
       if (pot.state === 'done') {
         const slot = kit.fridge.findIndex(s => s.state === 'empty');
         if (slot < 0) return no('冰箱满了……');
@@ -274,7 +295,7 @@ function click(id) {
     }
     case 'steamer': {
       if (stm.state === 'steaming') return no('还在蒸……');
-      if (stm.state === 'burnt') return act([{ x: sx('steamer'), fn: () => { kit.steamer = { state: 'empty', t: 0 }; renderStation('steamer'); setRing('steamer'); say('蒸老了……倒掉。', 1500); mood('sad', 1.5); } }]);
+      if (stm.state === 'burnt') return act([{ x: sx('steamer'), fn: () => { kit.steamer = { state: 'empty', t: 0 }; renderStation('steamer'); setRing('steamer'); waste(3, 'steamer'); say('蒸老了……倒掉。', 1500); mood('sad', 1.5); } }]);
       if (stm.state === 'done') {
         const pi = freePlate(); if (pi < 0) return no('没有空盘子了……');
         kit.plates[pi] = RES;
@@ -304,13 +325,101 @@ function click(id) {
     }
   }
 }
+function toBowl(id) {
+  const b = kit.bowl;
+  if (b.mixed) return no(b.flour ? '碗里是搅好的面糊了。\n先倒到平底锅上吧。' : '碗里是搅好的布丁液了。\n先倒进蒸笼吧。');
+  if (b[id]) return no(`碗里已经有${NAME[id]}了。`);
+  if ((id === 'sugar' && b.flour) || (id === 'flour' && b.sugar)) return no('糖和面粉不能放一起……\n布丁放糖，松饼放面粉。');
+  return act([{ x: sx(id), fn: () => carry(id) }, { x: sx('bowl'), fn: () => {
+    carry(null);
+    if (kit.bowl[id] || kit.bowl.mixed) return no(`${NAME[id]}……放不下了。`);
+    kit.bowl[id] = true; renderStation('bowl'); sparkle('bowl'); snd('place');
+  } }]);
+}
+
+/* ---- the light-meal corner: double griddle + burger stand ---- */
+const BURGER = ['bunB', 'lettuce', 'pine', 'egg', 'bunT'];
+const LNAME = { bunB: '面包底', lettuce: '生菜', pine: '煎菠萝', egg: '煎蛋', bunT: '面包顶' };
+const isBurger = it => it && it !== RES && it.dish === 'burger';
+const BN = BURGER.length;
+function openBurger() {     // the burger currently being stacked (a tidy one first)
+  let i = kit.plates.findIndex(it => isBurger(it) && !it.messy && it.layers.length < BN);
+  if (i < 0) i = kit.plates.findIndex(it => isBurger(it) && it.layers.length < BN);
+  return i;
+}
+function addLayer(pi, id) {
+  const it = kit.plates[pi]; if (!isBurger(it) || it.layers.length >= BN) return false;
+  if (BURGER[it.layers.length] !== id && !it.messy) { it.messy = true; snd('sad'); mood('sad', 1.6); say(`啊……叠、叠错了。\n${LNAME[BURGER[it.layers.length]]}应该先放。\n只能倒掉重来了。`, 2200); }
+  it.layers.push(id); renderStation('plate' + pi); snd('place');
+  if (it.layers.length === BN && !it.messy) { sparkle('plate' + pi); say('菠萝鸡蛋堡，做好了！', 1300); }
+}
+function layerFrom(id, src = id) {
+  const pi = openBurger(); if (pi < 0) return no('先点面包篮，\n在盘子上放面包。');
+  return act([{ x: sx(src), fn: () => carry(id) },
+              { x: sx('plate' + pi), fn: () => { carry(null); if (addLayer(pi, id) === false) return no('……汉堡不见了。'); } }]);
+}
+function breadClick() {
+  // a burger whose fillings are all in → put the lid on; otherwise start a new one on a free plate
+  const ready = kit.plates.findIndex(it => isBurger(it) && !it.messy && it.layers.length === BN - 1);
+  if (ready >= 0) return layerFrom('bunT', 'bread');
+  const pi = freePlate(); if (pi < 0) return no('没有空盘子了……');
+  kit.plates[pi] = RES;
+  if (!act([{ x: sx('bread'), fn: () => carry('bunB') },
+            { x: sx('plate' + pi), fn: () => { carry(null); kit.plates[pi] = { dish: 'burger', layers: ['bunB'], messy: false }; renderStation('plate' + pi); snd('place'); } }])) kit.plates[pi] = null;
+}
+const freeGrid = pref => kit.griddle[pref] === null ? pref : kit.griddle.findIndex(g => g === null);
+function fry(item, pref = 0) {
+  const gi = freeGrid(pref); if (gi < 0) return no('平底锅两格都在用……');
+  kit.griddle[gi] = RES;
+  if (!act([{ x: sx(item === 'egg' ? 'eggF' : item), fn: () => carry(item) },
+            { x: sx('griddle' + gi), fn: () => { carry(null); kit.griddle[gi] = { item, state: 'cooking', t: 0 }; renderStation('griddle'); snd('sizzle'); say(item === 'egg' ? '煎、煎蛋。' : '菠萝片，滋——', 1000); } }])) kit.griddle[gi] = null;
+}
+function pourBatter(pref = 0) {
+  const gi = freeGrid(pref); if (gi < 0) return no('平底锅两格都在用……');
+  kit.griddle[gi] = RES;
+  if (!act([{ x: sx('bowl'), fn: () => { carry('batter'); kit.bowl = freshKit().bowl; renderStation('bowl'); } },
+            { x: sx('griddle' + gi), fn: () => { carry(null); kit.griddle[gi] = { item: 'cake', state: 'cooking', t: 0 }; renderStation('griddle'); snd('pour'); say('松饼煎上了。\n冒泡了要翻面！', 1500); } }])) kit.griddle[gi] = null;
+}
+function bestGriddle() {    // phone pad: the slot that most needs a tap
+  const g = kit.griddle, at = f => g.findIndex(sl => sl && sl !== RES && f(sl));
+  for (const f of [sl => sl.state === 'flip', sl => sl.state === 'burnt', sl => sl.state === 'done']) { const i = at(f); if (i >= 0) return i; }
+  const e = g.indexOf(null); return e >= 0 ? e : 0;
+}
+function griddleClick(gi) {
+  const id = 'griddle' + gi, sl = kit.griddle[gi];
+  if (sl === RES) return;
+  if (!sl) {
+    if (kit.bowl.mixed && kit.bowl.flour) return pourBatter(gi);
+    return no('平底锅空着。\n点挂架上的菠萝罐、鸡蛋碗来煎' + (isOpen('choco') ? '，\n或者把松饼面糊倒过来。' : '。'));
+  }
+  if (sl.state === 'cooking' || sl.state === 'cooking2') return no('还在煎……');
+  if (sl.state === 'flip') return act([{ x: sx(id), fn: () => {
+    const g = kit.griddle[gi]; if (!g || g === RES || g.state !== 'flip') return false;
+    g.state = 'cooking2'; g.t = 0; renderStation('griddle'); snd('sizzle'); squish(2.4); G.vl -= 200; G.vr += 200; say('翻！', 700);
+  } }]);
+  if (sl.state === 'burnt') return act([{ x: sx(id), fn: () => { const g = kit.griddle[gi]; kit.griddle[gi] = null; renderStation('griddle'); setRing(id); waste(g && g.item === 'cake' ? 3 : 1, id); say('煎糊了……倒掉。', 1400); mood('sad', 1.5); } }]);
+  const lost = () => { const g = kit.griddle[gi]; return !g || g === RES || g.state !== 'done'; };
+  if (sl.item === 'cake') {
+    const pi = freePlate(); if (pi < 0) return no('没有空盘子了……');
+    kit.plates[pi] = RES;
+    if (!act([{ x: sx(id), fn: () => { if (lost()) { kit.plates[pi] = null; return no('……啊，糊了。'); } carry('cakeC'); kit.griddle[gi] = null; renderStation('griddle'); setRing(id); } },
+              { x: sx('plate' + pi), fn: () => { carry(null); kit.plates[pi] = { dish: 'choco', sauce: false }; renderStation('plate' + pi); snd('place'); } }])) kit.plates[pi] = null;
+    return;
+  }
+  const what = sl.item, pi = openBurger();
+  if (pi < 0) return no(`先在盘子上放面包底，\n再把${LNAME[what]}叠上去。`);
+  return act([{ x: sx(id), fn: () => { if (lost()) return no('……啊，糊了。'); carry(what === 'egg' ? 'eggC' : 'pineC'); kit.griddle[gi] = null; renderStation('griddle'); setRing(id); } },
+              { x: sx('plate' + pi), fn: () => { carry(null); if (addLayer(pi, what) === false) return no('……汉堡不见了。'); } }]);
+}
+
 function tryCook() { if (kit.pot.apple && kit.pot.gel && kit.pot.state === 'idle') { kit.pot.state = 'cooking'; kit.pot.t = 0; snd('sizzle'); say('煮、煮上了。', 1100); } }
-const complete = it => it && it !== RES && (it.dish !== 'pudding' || it.caramel);
+const complete = it => it && it !== RES && (it.dish === 'pudding' ? it.caramel : it.dish === 'burger' ? it.layers.length === BURGER.length && !it.messy : it.dish === 'choco' ? it.sauce : true);
+const notDone = it => it.dish === 'pudding' ? '布丁还没淋焦糖。' : it.dish === 'choco' ? '松饼还没淋巧克力酱。' : it.messy ? '汉堡叠错了……\n点 × 倒掉重来。' : `汉堡还没做好（${it.layers.length}/${BN}）。`;
 const matchPlate = cu => kit.plates.findIndex(it => complete(it) && !it.taken && it.dish === cu.order);
 function servePlate(pi, target) {
   const it = kit.plates[pi];
   if (!it || it === RES) return no('盘子是空的。');
-  if (!complete(it)) return no('布丁还没淋焦糖。');
+  if (!complete(it)) return no(notDone(it));
   if (it.taken) return;
   const cu = target || counterCustomers().find(c => c.order === it.dish && !c.served);
   if (!cu) return no('没有人点这个……\n先放着吧。');
@@ -318,12 +427,20 @@ function servePlate(pi, target) {
   return act([{ x: sx('plate' + pi), fn: () => { if (kit.plates[pi] !== it) { cu.served = false; return false; } carry(it.dish, it); kit.plates[pi] = null; renderStation('plate' + pi); } },
               { x: cu.cx, fn: () => { carry(null); serve(cu, it); } }]);
 }
+const COST = { pudding: 3, jelly: 3, choco: 3 };     // ingredient cost of a finished dish (burger = 1 per layer)
+const plateCost = it => it.dish === 'burger' ? it.layers.length : COST[it.dish] || 2;
+function waste(n, key) {
+  if (!n) return;
+  save.coins = Math.max(0, save.coins - n); day.coins -= n; day.waste += n; persist(); updateHud();
+  const [x, y, w] = A.BOX[key] || SPOTS[key].r;
+  floatText(x + w / 2, y - 10, `−${n} 浪费`, 'bad');
+}
 function clearStation(k) {
   if (sheetOpen) return;
-  if (k === 'bowl') act([{ x: sx('bowl'), fn: () => { kit.bowl = freshKit().bowl; renderStation('bowl'); say('倒掉了。', 900); } }]);
-  else if (k === 'board') act([{ x: sx('board'), fn: () => { kit.board = { state: 'empty', chop: 0 }; renderStation('board'); } }]);
-  else if (k === 'stove') act([{ x: sx('stove'), fn: () => { if (kit.pot.state !== 'idle') return false; kit.pot = freshKit().pot; renderStation('stove'); } }]);
-  else { const i = +k.slice(5); act([{ x: sx(k), fn: () => { const it = kit.plates[i]; if (!it || it === RES || it.taken) return false; kit.plates[i] = null; renderStation(k); say('……倒掉了。', 900); } }]); }
+  if (k === 'bowl') act([{ x: sx('bowl'), fn: () => { const b = kit.bowl; const n = ['egg', 'milk', 'sugar', 'flour'].filter(q => b[q]).length; kit.bowl = freshKit().bowl; renderStation('bowl'); waste(n, 'bowl'); say('倒掉了。', 900); } }]);
+  else if (k === 'board') act([{ x: sx('board'), fn: () => { const n = kit.board.state === 'empty' ? 0 : 1; kit.board = { state: 'empty', chop: 0 }; renderStation('board'); waste(n, 'board'); } }]);
+  else if (k === 'stove') act([{ x: sx('stove'), fn: () => { if (kit.pot.state !== 'idle') return false; const n = (kit.pot.apple ? 1 : 0) + (kit.pot.gel ? 1 : 0); kit.pot = freshKit().pot; renderStation('stove'); waste(n, 'stove'); } }]);
+  else { const i = +k.slice(5); act([{ x: sx(k), fn: () => { const it = kit.plates[i]; if (!it || it === RES || it.taken) return false; kit.plates[i] = null; renderStation(k); waste(plateCost(it), k); say('……倒掉了。', 900); } }]); }
 }
 
 /* ================= kitchen timers ================= */
@@ -351,8 +468,26 @@ function updateKitchen(dt) {
     if (sl.state === 'chill') { sl.t += dt; if (sl.t >= T.chill) { sl.state = 'ready'; renderStation('fridge' + i); ding('fridge' + i); updateHints(); } }
     if (sl.state === 'chill') setRing('fridge' + i, 'run', sl.t / T.chill); else if (sl.state === 'ready') setRing('fridge' + i, 'done', 1); else setRing('fridge' + i);
   });
+  kit.griddle.forEach((sl, i) => {
+    const k = 'griddle' + i;
+    if (!sl || sl === RES) return setRing(k);
+    sl.t += dt;
+    const cake = sl.item === 'cake', cookT = cake ? T.cake : T.fry, burnAt = cake ? T.cakeBurn : T.fryBurn;
+    if (sl.state === 'cooking' && sl.t >= cookT) {
+      if (cake) { sl.state = 'flip'; ding(k); say('冒泡了！\n该翻面了！', 1400); }
+      else { sl.state = 'done'; ding(k); say(sl.item === 'egg' ? '蛋煎好了！' : '菠萝煎好了！', 1200); }
+      renderStation('griddle'); updateHints();
+    } else if (sl.state === 'cooking2' && sl.t >= T.cake) { sl.state = 'done'; sl.t = 0; renderStation('griddle'); ding(k); say('松饼煎好了！', 1200); updateHints(); }
+    else if (sl.state === 'flip' && sl.t >= T.cake + T.flipBurn) { sl.state = 'burnt'; renderStation('griddle'); burnt('没翻面……糊了！'); updateHints(); }
+    else if (sl.state === 'done' && sl.t >= (cake ? 0 : cookT) + burnAt) { sl.state = 'burnt'; renderStation('griddle'); burnt('煎、煎糊了！'); updateHints(); }
+    if (sl.state === 'cooking' || sl.state === 'cooking2') setRing(k, 'run', sl.t / cookT);
+    else if (sl.state === 'flip') setRing(k, 'warn', 1);
+    else if (sl.state === 'done') setRing(k, sl.t > (cake ? 0 : cookT) + burnAt * .5 ? 'warn' : 'done', 1);
+    else setRing(k, 'bad', 1);
+  });
   puffT -= dt;
   if (puffT < 0) {
+    for (const [i, sl] of kit.griddle.entries()) if (sl && sl !== RES) puff(787 + i * 50, 372, sl.state === 'burnt');
     puffT = .45;
     if (pot.state === 'cooking' || pot.state === 'done') puff(96, 226, false);
     if (pot.state === 'burnt') puff(96, 226, true);
@@ -378,6 +513,7 @@ function renderCustomer(cu) {
   cu.icon.style.width = ic + 'px'; cu.icon.style.height = ic * .9 + 'px';
   paint(cu.icon, 80, 72, ic / 80, p => A.drawOrder(p, cu.order), 9);
 }
+let spawnCount = 0;
 function spawn(cfg) {
   let type; do { type = pick(A.CUSTOMERS); } while (type.id === lastType); lastType = type.id;
   const cv = document.createElement('canvas'); cv.className = 'cust'; cv.style.opacity = 0;
@@ -386,8 +522,10 @@ function spawn(cfg) {
   const hearts = document.createElement('span'); hearts.className = 'hearts';
   const sayEl = document.createElement('p'); sayEl.className = 'csay';
   bub.append(icon, hearts, sayEl); custLayer.append(cv, bub);
-  const pat = cfg.pat * type.pat;
-  const cu = { type, seed: Math.floor(rnd(1, 999)), cv, bub, icon, hearts, sayEl, order: pick(cfg.dishes), phase: 'walk', next: null,
+  const newDish = MENU.find(m => m.ready && m.day === save.day && save.day > 1);
+  const order = save.day === 1 && spawnCount < 2 ? ['pudding', 'jelly'][spawnCount] : newDish && spawnCount === 0 ? newDish.id : pick(cfg.dishes); spawnCount++;
+  const pat = cfg.pat * type.pat * (DISH[order].pat || 1);
+  const cu = { type, seed: Math.floor(rnd(1, 999)), cv, bub, icon, hearts, sayEl, order, phase: 'walk', next: null,
     patience: pat, remain: pat, pos: [...DOOR], from: [...DOOR], to: [...DOOR], t: 0, dur: .01, arrived: 0, ci: -1, qi: -1, cx: 0, served: false };
   renderCustomer(cu);
   cv.addEventListener('click', e => { e.stopPropagation(); clickCustomer(cu); }); bub.addEventListener('click', e => { e.stopPropagation(); clickCustomer(cu); });
@@ -405,7 +543,7 @@ function admit(cu) {
   const waiting = customers.filter(c => c.qi >= 0).length;
   if (ci >= 0 && waiting === 0) return toCounter(cu, ci);
   if (waiting < QUEUE.length) { cu.qi = waiting; cu.bub.classList.add('small'); walkTo(cu, QUEUE[cu.qi], () => { cu.phase = 'queue'; cu.bub.classList.add('on'); }); return; }
-  day.missed++; leave(cu, '人好多……下次再来。');
+  missed(cu); leave(cu, '人好多……下次再来。');
 }
 function toCounter(cu, ci) {
   cu.ci = ci; cu.qi = -1; cu.cx = COUNTER[ci];
@@ -415,7 +553,7 @@ function toCounter(cu, ci) {
 function clickCustomer(cu) {
   if (sheetOpen || cu.phase !== 'order' || cu.served) return;
   const pi = matchPlate(cu);
-  if (pi < 0) return no(`${cu.type.name}要的是${cu.order === 'pudding' ? '牛奶布丁' : '青苹果果冻'}。\n还没做好……`);
+  if (pi < 0) return no(`${cu.type.name}要的是${DISH[cu.order].name}。\n还没做好……`);
   servePlate(pi, cu);
 }
 function heartsText(cu) { const n = clamp(Math.ceil(cu.remain / cu.patience * 3), 0, 3); return '♥'.repeat(n) + '♡'.repeat(3 - n); }
@@ -442,7 +580,7 @@ function updateCustomers(dt) {
     }
     if (!sheetOpen && cu.phase !== 'leave' && (cu.qi >= 0 || cu.ci >= 0) && !cu.served) {
       cu.remain -= dt * (cu.qi >= 0 ? .35 : 1);
-      if (cu.remain <= 0) { day.missed++; snd('sad'); leave(cu, cu.type.leave); mood('sad', 2.2); say(pick(['……（耳朵耷拉下来）', '……对不起。', '……噗。下次快一点。']), 2000); continue; }
+      if (cu.remain <= 0) { missed(cu); snd('sad'); leave(cu, cu.type.leave); mood('sad', 2.2); say(pick(['……（耳朵耷拉下来）', '……对不起。', '……噗。下次快一点。']), 2000); continue; }
     }
     cu.hearts.textContent = heartsText(cu);
     cu.bub.classList.toggle('hurry', cu.remain < cu.patience * .34 && cu.phase !== 'leave');
@@ -452,6 +590,12 @@ function updateCustomers(dt) {
     cu.bub.style.transform = `translate(${(x - 14) * K}px, ${(y - 160 * s - (cu.qi >= 0 ? 34 : 60)) * K}px)`;
   }
 }
+function missed(cu) {
+  day.missed++;
+  const n = Math.floor(priceOf(cu.order) * .3);
+  if (n) { save.coins = Math.max(0, save.coins - n); day.coins -= n; day.missCost += n; persist(); updateHud(); }
+  floatText(cu.pos[0], cu.pos[1] - 190, n ? `−${n} 错过客人` : '错过客人', 'bad');
+}
 function leave(cu, text) {
   if (cu.qi >= 0) { const q = cu.qi; cu.qi = -1; customers.filter(c => c.qi > q).forEach(c => { c.qi--; walkTo(c, QUEUE[c.qi], () => { c.phase = 'queue'; c.bub.classList.add('on'); }); }); }
   cu.ci = -1;
@@ -460,13 +604,13 @@ function leave(cu, text) {
   setTimeout(() => cu.bub.classList.remove('on'), 2200);
   updateHints();
 }
-const PRICE = { pudding: 6, jelly: 7 };
+
 function serve(cu, it) {
   if (cu.phase !== 'order') { const pi = kit.plates.indexOf(null); if (pi >= 0) { delete it.taken; kit.plates[pi] = it; renderStation('plate' + pi); } say('……客人走掉了。', 1400); return; }
   const hearts = clamp(Math.ceil(cu.remain / cu.patience * 3), 0, 3);
   const tip = Math.max(0, hearts - 1) * cu.type.tip;
-  const coins = PRICE[it.dish] + tip;
-  save.coins += coins; day.coins += coins; day.ok++; save.served++; persist(); snd('coin'); setTimeout(() => snd('happy'), 260);
+  const coins = priceOf(it.dish) + tip;
+  save.coins += coins; day.coins += coins; day.ok++; save.served++; save.taught[it.dish] = (save.taught[it.dish] || 0) + 1; persist(); snd('coin'); setTimeout(() => snd('happy'), 260);
   floatText(cu.cx, 540, `+${coins}${tip ? `（小费 ${tip}）` : ''}`); hearts3(cu.cx, 580);
   mood('happy', 2.2); squish(3);
   say(pick(['……请慢用。', '做好了！', '（鼻子动了动）\n……好吃吗？', '嘿嘿。']), 1600);
@@ -480,8 +624,8 @@ function ringDoor() {
 
 /* ================= small effects ================= */
 const fxLayer = $('#fxLayer');
-function floatText(x, y, t) {
-  const e = document.createElement('span'); e.className = 'float'; e.textContent = t;
+function floatText(x, y, t, cls = '') {
+  const e = document.createElement('span'); e.className = 'float ' + cls; e.textContent = t;
   e.style.left = pct(x, LW); e.style.top = pct(y, LH); fxLayer.append(e); setTimeout(() => e.remove(), 1500);
 }
 function hearts3(x, y) { for (let i = 0; i < 3; i++) setTimeout(() => floatText(x + rnd(-40, 40), y + rnd(-10, 20), '♥'), i * 120); }
@@ -516,6 +660,38 @@ function nextStep(dish) {
     if (b.egg && b.milk && b.sugar) return ['bowl', `点搅拌碗搅拌（${b.stir}/3）`];
     return [['egg', 'milk', 'sugar'].find(k => !b[k]), '把鸡蛋、牛奶、糖放进搅拌碗'];
   }
+  const gAt = f => kit.griddle.findIndex(sl => sl && sl !== RES && f(sl));
+  const gBurnt = gAt(sl => sl.state === 'burnt');
+  if (dish === 'burger') {
+    if (has('burger', it => complete(it))) return ['plate', '汉堡叠好啦！点盘子（或点客人）出餐'];
+    const bi = openBurger(), cur = bi >= 0 && pl[bi];
+    if ((!cur || cur.messy) && has('burger', it => it.messy)) return [null, '叠错了……点那个盘子右上角的 × 倒掉，重新放面包底'];
+    if (gBurnt >= 0) return ['griddle' + gBurnt, '煎糊了……点平底锅倒掉'];
+    if (!cur) return ['bread', '点面包篮，在盘子上放面包（也可以先把菠萝和蛋煎上）'];
+    const need = BURGER[cur.layers.length];
+    if (need === 'pine' || need === 'egg') {
+      const d = gAt(sl => sl.item === need && sl.state === 'done');
+      if (d >= 0) return ['griddle' + d, `点平底锅，把${LNAME[need]}叠上去`];
+      if (gAt(sl => sl.item === need) >= 0 || kit.griddle.includes(RES)) return [null, `${LNAME[need]}在煎……等进度圈转满（别煎糊！）`];
+      return [need === 'pine' ? 'pine' : 'eggF', need === 'pine' ? '点墙上挂架的菠萝罐，拿一片去平底锅煎' : '点挂架下层的鸡蛋碗，拿一个去平底锅煎'];
+    }
+    if (need === 'lettuce') return ['lettuce', '点生菜碗，铺一片生菜'];
+    return ['bread', '馅都放好了！再点面包篮，盖上面包'];
+  }
+  if (dish === 'choco') {
+    if (has('choco', it => it.sauce)) return ['plate', '松饼做好啦！点盘子（或点客人）出餐'];
+    if (has('choco', it => !it.sauce)) return ['choco', '给松饼淋上巧克力酱'];
+    const c = st => gAt(sl => sl.item === 'cake' && sl.state === st);
+    if (c('flip') >= 0) return ['griddle' + c('flip'), '冒泡了！快点平底锅翻面'];
+    if (c('done') >= 0) return ['griddle' + c('done'), '松饼煎好了！点平底锅装盘'];
+    if (c('burnt') >= 0) return ['griddle' + c('burnt'), '煎糊了……点平底锅倒掉重来'];
+    if (c('cooking') >= 0 || c('cooking2') >= 0 || kit.griddle.includes(RES)) return [null, '松饼在煎……冒泡了要翻面'];
+    if (b.mixed && b.flour) return ['bowl', '点搅拌碗，把面糊倒到平底锅上'];
+    if (b.sugar || b.mixed) return [null, '碗里是布丁的料……先做完布丁，或点碗边的 × 倒掉'];
+    if (b.egg && b.milk && b.flour) return ['bowl', `点搅拌碗搅拌（${b.stir}/3）`];
+    const miss = ['egg', 'milk', 'flour'].find(k => !b[k]);
+    return [miss, '把鸡蛋、牛奶、面粉放进搅拌碗'];
+  }
   if (has('jelly', () => true)) return ['plate', '果冻做好啦！点盘子（或点客人）出餐'];
   if (kit.fridge.some(f => f.state === 'ready')) return ['fridge', '凝固了！点冰箱，把果冻装盘'];
   if (kit.fridge.some(f => f.state === 'chill' || f.state === RES)) return [null, '果冻在冰箱里凝固……可以先去做布丁'];
@@ -530,32 +706,73 @@ function nextStep(dish) {
 }
 function updateHints() {
   $$('.spot.hint').forEach(e => e.classList.remove('hint'));
-  const teach = running && save.day <= 2 && day.ok < (save.day === 1 ? 3 : 4);
-  const cus = counterCustomers().filter(c => !c.served);
-  if (!teach || !cus.length) { tip.classList.remove('on'); return; }
-  const want = save.day === 2 && cus.some(c => c.order === 'jelly') ? 'jelly' : cus[0].order;
+  // day 1–2 teach pudding & jelly; each later dish gets hints for its first two orders
+  const teachOld = save.day <= 2 && day.ok < (save.day === 1 ? 4 : 2);
+  const cus = counterCustomers().filter(c => !c.served && (c.order === 'pudding' || c.order === 'jelly' ? teachOld : (save.taught[c.order] || 0) < 2));
+  if (!running || !cus.length) { tip.classList.remove('on'); return; }
+  const want = cus[0].order;
   let [spot, text] = nextStep(want);
-  if (spot === 'plate') spot = 'plate' + kit.plates.findIndex(it => it && it !== RES && it.dish === want);
+  if (spot === 'plate') spot = 'plate' + kit.plates.findIndex(it => complete(it) && it.dish === want);
   if (spot && spotEls[spot]) spotEls[spot].classList.add('hint');
-  tip.textContent = (want === 'pudding' ? '牛奶布丁 · ' : '青苹果果冻 · ') + text;
+  tip.textContent = DISH[want].name + ' · ' + text;
   tip.classList.add('on');
 }
 
 /* ================= days ================= */
-const DAYS = {
-  1: { dur: 110, dishes: ['pudding'], gap: [12, 16], pat: 75, stars: [16, 32, 48], title: '第一天', sub: '只卖牛奶布丁。慢慢来。' },
-  2: { dur: 130, dishes: ['pudding', 'jelly'], gap: [10, 14], pat: 80, stars: [24, 48, 70], title: '第二天', sub: '青苹果果冻上架！要放冰箱冷藏，等的时候可以去做布丁。' },
-  3: { dur: 150, dishes: ['pudding', 'jelly'], gap: [8, 12], pat: 72, stars: [34, 64, 94], title: '第三天', sub: '客人变多了，会在门口排队。' },
-};
-const cfgOf = d => DAYS[d] || { dur: 150, dishes: ['pudding', 'jelly'], gap: [Math.max(5, 8 - (d - 3) * .4), Math.max(8, 12 - (d - 3) * .5)], pat: Math.max(55, 70 - (d - 3) * 2), stars: [40, 74, 108].map(v => Math.round(v * (1 + (d - 4) * .08))), title: `第 ${d} 天`, sub: '自由营业。主人在后面喝茶。' };
+/* menu roadmap: a new dish every two days (user's order); `ready` flips on as each dish is built */
+const MENU = [
+  { id: 'pudding', name: '牛奶布丁', day: 1, price: 6, ready: true },
+  { id: 'jelly', name: '青苹果果冻', day: 1, price: 7, ready: true },
+  { id: 'burger', name: '菠萝鸡蛋堡', day: 3, price: 12, ready: true, pat: 1.35 },
+  { id: 'choco', name: '巧克力松饼', day: 5, price: 9, ready: true, pat: 1.15 },
+  { id: 'mistsoda', name: '雾蓝苏打', day: 7, price: 7 },
+  { id: 'carrot', name: '胡萝卜苹果汁', day: 9, price: 8 },
+  { id: 'berry', name: '草莓牛奶', day: 11, price: 9 },
+  { id: 'sandwich', name: '水果三明治', day: 13, price: 12 },
+  { id: 'lime', name: '青柠气泡水', day: 15, price: 8 },
+  { id: 'pie', name: '青苹果派', day: 19, price: 20 },
+];
+const DISH = Object.fromEntries(MENU.map(m => [m.id, m]));
+function isOpen(id) { const m = DISH[id]; return !!m && !!m.ready && m.day <= save.day; }
+const dayRand = (d, k) => { const s = Math.sin(d * 9301 + k * 49297) * 233280; return s - Math.floor(s); };
+function menuOf(d) {
+  const open = MENU.filter(m => m.ready && m.day <= d);
+  if (d < 21 || open.length <= 5) return { dishes: open.map(m => m.id), special: null };
+  // from day 21: a rotating daily menu of 5 dishes plus a "today's special"
+  const pool = [...open].sort((a, b) => dayRand(d, MENU.indexOf(a)) - dayRand(d, MENU.indexOf(b))).slice(0, 5);
+  return { dishes: pool.map(m => m.id), special: pool[Math.floor(dayRand(d, 99) * pool.length)].id };
+}
+const priceOf = (id, d = save.day) => { const m = menuOf(d); return Math.round(DISH[id].price * (m.special === id ? 1.5 : 1)); };
+const NUM = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+function cfgOf(d) {
+  const { dishes, special } = menuOf(d);
+  const dur = Math.min(200, 110 + 4 * d), gapC = Math.max(4, 13 - .35 * d), pat = Math.max(42, 82 - 1.3 * d);
+  // full marks: customers that fit in the day × (average dish price + a full-hearts tip)
+  const n = Math.max(3, Math.floor((dur - 4) / gapC)), avg = dishes.reduce((s, id) => s + priceOf(id, d), 0) / dishes.length;
+  const tipAvg = A.CUSTOMERS.reduce((s, c) => s + c.tip, 0) / A.CUSTOMERS.length * 2;
+  const theo = n * (avg + tipAvg);
+  const fresh = MENU.filter(m => m.ready && m.day === d && d > 1);
+  return {
+    dur, dishes, special, pat, gap: [Math.max(3, gapC - 1.5), gapC + 1.5],
+    stars: (d <= 2 ? [.4, .6, .8] : [.5, .7, .88]).map(k => Math.round(theo * k)),   // days 1–2 are for learning
+    title: d <= 10 ? `第${NUM[d]}天` : `第 ${d} 天`,
+    sub: d === 1 ? '今天学两道菜：牛奶布丁和青苹果果冻。' : fresh.length ? `新菜上架：${fresh.map(m => m.name).join('、')}！` : special ? `今日特供：${DISH[special].name}（售价 ×1.5）` : d === 3 ? '客人变多了，会在门口排队。' : '客人会一天比一天多。',
+  };
+}
+function renderChalk() {
+  const { dishes, special } = menuOf(save.day), el = $('.chalk'); if (!el) return;
+  const show = dishes.slice(0, 4);
+  el.innerHTML = `<b>MENU</b>${show.map(id => `<span>${DISH[id].name}${id === special ? '★' : ''} · ${priceOf(id)}</span>`).join('')}<small>${dishes.length > 4 ? `……还有 ${dishes.length - 4} 道` : '今日营业中'}</small>`;
+}
 let running = false, sheetOpen = false, spawnT = 0, clock = 0;
-const day = { ok: 0, missed: 0, coins: 0 };
+const day = { ok: 0, missed: 0, coins: 0, waste: 0, missCost: 0 };
 function startDay() {
-  Object.assign(day, { ok: 0, missed: 0, coins: 0 });
-  kit = freshKit(); Object.keys(A.BOX).forEach(renderStation); Object.keys(rings).forEach(k => setRing(k));
+  Object.assign(day, { ok: 0, missed: 0, coins: 0, waste: 0, missCost: 0 });
+  kit = freshKit(); paintShop(); Object.keys(rings).forEach(k => setRing(k));
   customers.splice(0).forEach(c => { c.cv.remove(); c.bub.remove(); });
   G.queue = []; G.act = null; carry(null);
   running = true; clock = 0; spawnT = 2; closeSheet(); updateHud(); updateOpenBtn();
+  spawnCount = 0; renderChalk();
   const cfg = cfgOf(save.day);
   $('#dayTag').textContent = cfg.title;
   say(save.day === 1 ? '……开、开店了。' : `${cfg.title}。\n……今天也加油。`, 2000);
@@ -575,7 +792,7 @@ function endDay() {
   const cfg = cfgOf(save.day), stars = starsOf(cfg, day.coins);
   save.stars[save.day] = Math.max(save.stars[save.day] || 0, stars);
   const finishedStory = save.day === 3 && !save.finished;
-  save.day++; if (finishedStory) save.finished = true; persist();
+  save.day++; if (finishedStory) save.finished = true; persist(); renderChalk(); paintShop();
   mood('happy', 3); squish(3);
   say(day.missed ? '……关门了。\n有客人没等到。' : '……关门了！\n今天，一个都没有走掉。', 2600);
   setTimeout(() => finishedStory ? openFinale(stars) : openReport(cfg, stars), 700);
@@ -596,8 +813,28 @@ function openSheet(html, cls = '') {
 }
 function closeSheet() { sheet.className = 'sheet'; sheetOpen = false; updateOpenBtn(); }
 function updateOpenBtn() { const b = $('#openBtn'); if (!b) return; b.classList.toggle('on', !running && !sheetOpen); b.textContent = `${cfgOf(save.day).title}，开店营业 →`; }
+const RECIPE = {
+  burger: ['新菜：菠萝鸡蛋堡', `<p>窗户旁边的墙上钉了个<b>小挂架</b>：上层是<b>菠萝罐</b>，下层是<b>煎蛋用的鸡蛋</b>。柜台右边多了<b>平底锅</b>、<b>面包篮</b>和<b>生菜碗</b>。出餐铃挂到墙上了。</p>
+    <p>点菠萝罐、鸡蛋碗，果冻就拿去平底锅煎。进度圈转满就好了——<b>放久会煎糊</b>。</p>
+    <p class="order-line"><b>面包篮 → 生菜 → 煎菠萝 → 煎蛋 → 再点面包篮盖上</b></p>
+    <p>煎好的东西点一下平底锅，就会叠到汉堡上。<b>顺序叠错了，只能倒掉重来。</b></p>
+    <p class="sign">PS. 汉堡要等一会儿，客人会多给你一点耐心。—— 主人</p>`],
+  choco: ['新菜：巧克力松饼', `<p>架子上多了一袋<b>面粉</b>，柜台上多了一瓶<b>巧克力酱</b>（可可色那瓶）。</p>
+    <p><b>鸡蛋 + 牛奶 + 面粉</b>放进搅拌碗 → <b>搅 3 下</b> → 点碗，把面糊倒到<b>平底锅</b>上。</p>
+    <p>面糊倒在平底锅的空格上。<b>冒泡</b>了，就点平底锅<b>翻面</b>（晚了会糊）→ 再煎一会儿 → 装盘 → 淋<b>巧克力酱</b>。</p>
+    <p>糖是布丁的，面粉是松饼的，<b>不能放进同一个碗</b>。</p>
+    <p class="sign">PS. 翻面要快，耳朵竖起来盯着。—— 主人</p>`],
+};
+const pendingRecipe = () => ['burger', 'choco'].find(id => isOpen(id) && !save.seen.includes(id));
+function begin() { const r = pendingRecipe(); if (r) return openRecipe(r); startDay(); }
+function openRecipe(id) {
+  save.seen.push(id); persist(); paintShop();
+  openSheet(`<div class="paper owner"><h3>${RECIPE[id][0]}</h3>${RECIPE[id][1]}
+    <div class="row"><button class="btn" data-go="begin">${cfgOf(save.day).title}，开店营业 →</button></div></div>`, 'intro');
+  say('（盯着便签）……记、记住了。', 2000);
+}
 const actions = {
-  start: startDay, next: startDay,
+  start: begin, next: begin, begin,
   reset: () => { if (!confirm('从第一天重新开始？硬币、装饰和小屋都会清空。')) return; save = fresh(); persist(); try { localStorage.removeItem('guodong.home.v1'); } catch (_) {} location.reload(); },
   decor: () => openReport(cfgOf(save.day - 1), save.stars[save.day - 1] || 0),
   stay: () => { closeSheet(); say(pick(['……打烊了。可以慢慢收拾。', '（伸了个懒腰）', '准备好了，就点「开店营业」。']), 2200); },
@@ -610,20 +847,17 @@ function openIntro() {
       <h3>${again ? '欢迎回来' : '给果冻的便签'}</h3>
       ${again ? `<p>小店还在营业。现在是 <b>${cfgOf(save.day).title}</b>，兜里有 <b>${save.coins}</b> 枚硬币。</p><p class="keys">${cfgOf(save.day).sub}</p>`
       : `<p>今天我去山下进货，前台交给你啦，小果冻。</p>
-      <p><b>牛奶布丁</b>这样做：</p>
-      <ol>
-        <li>从架子上拿<b>鸡蛋、牛奶、糖</b>，放进搅拌碗；</li>
-        <li>点搅拌碗<b>搅 3 下</b>，再点一次，倒进<b>蒸笼</b>；</li>
-        <li>进度圈转满就好了——<b>别放太久</b>，会蒸老；</li>
-        <li>点蒸笼装盘，淋上<b>焦糖</b>，点客人出餐。</li>
-      </ol>
-      <p>客人头上的 ♥ 变少，就是等急了。在门口排队的客人会等得久一点。</p>
+      <p>今天学两道菜：</p>
+      <p><b>牛奶布丁</b>：拿<b>鸡蛋、牛奶、糖</b>放进搅拌碗 → <b>搅 3 下</b> → 倒进<b>蒸笼</b> → 好了装盘 → 淋<b>焦糖</b>。</p>
+      <p><b>青苹果果冻</b>：拿<b>青苹果</b>到砧板 → <b>切 3 下</b> → 和<b>吉利丁</b>一起下锅煮 → 倒模放进<b>冰箱</b> → 凝固后装盘。</p>
+      <p>进度圈转满就是好了——<b>别放太久</b>，会蒸老、会煮焦。果冻要冷藏，等的时候可以去做布丁。</p>
+      <p>客人头上的 ♥ 变少，就是等急了。在门口排队的客人会等得久一点。<b>没等到就走掉的客人，会少赚他那道菜三成的钱</b>；倒掉、做焦的东西，也要赔原料钱。</p>
       <p class="sign">PS. 发箍别摘，客人会认不出你。—— 主人</p>`}
       <div class="row"><button class="btn" data-go="start">${again ? '继续营业' : '开店营业'} →</button>${again ? '<button class="btn ghost" data-go="stay">先逛逛</button><button class="btn ghost" data-go="home">先回小屋 🏠</button><button class="btn ghost" data-go="reset">从头开始</button>' : ''}</div>
       <p class="keys">每天营业到小太阳走完。收入达到目标拿星星。空格 = 出餐铃。</p>
     </div>`, 'intro');
 }
-const DIARY = ['今天，学会了蒸布丁。第一锅蒸老了，偷偷吃掉了。', '果冻要放冰箱，等的时候去做布丁。主人说这叫「同时」。', '门口排起队了。耳朵转来转去，好累。但是，好开心。', '今天的苹果很甜。主人说，我越来越像店长了。'];
+const DIARY = ['今天学了两道菜。第一锅布丁蒸老了，偷偷吃掉了。', '果冻要放冰箱，等的时候去做布丁。主人说这叫「同时」。', '门口排起队了。耳朵转来转去，好累。但是，好开心。', '今天的苹果很甜。主人说，我越来越像店长了。'];
 const starHtml = n => '<span class="stars">' + [0, 1, 2].map(i => `<i class="${i < n ? 'on' : ''}">★</i>`).join('') + '</span>';
 function openReport(cfg, stars) {
   decoCart.clear();
@@ -634,8 +868,9 @@ function openReport(cfg, stars) {
     <div class="paper report">
       <h3>营业日记 · ${cfg.title} ${starHtml(stars)}</h3>
       <ul class="stats">
-        <li>招待了 <b>${day.ok}</b> 位客人 · 没等到 <b>${day.missed}</b> 位</li>
-        <li>今天赚了 <b>${day.coins}</b> 枚（目标 ★${cfg.stars[0]} / ★★${cfg.stars[1]} / ★★★${cfg.stars[2]}）</li>
+        <li>招待了 <b>${day.ok}</b> 位客人 · 没等到 <b>${day.missed}</b> 位${day.missCost ? `（少赚 <b>${day.missCost}</b> 枚）` : ''}</li>
+        ${day.waste ? `<li>浪费了 <b>${day.waste}</b> 枚原料</li>` : ''}
+        <li>今天净赚 <b>${day.coins}</b> 枚（目标 ★${cfg.stars[0]} / ★★${cfg.stars[1]} / ★★★${cfg.stars[2]}）</li>
         <li>兜里一共 <b class="total">${save.coins}</b> 枚</li>
       </ul>
       <p class="diary">果冻写：「${DIARY[Math.min(DIARY.length - 1, save.day - 2)]}」</p>
@@ -700,7 +935,7 @@ girlEl.addEventListener('click', e => {
 });
 const NOTES = {
   owner: ['主人的便签', '今天我去山下进货，<br>前台交给你啦，小果冻。<br><br><small>PS. 发箍别摘，客人会认不出你。—— 主人</small>'],
-  menu: ['今日菜单', '牛奶布丁 ············ 6<br>青苹果果冻 ·········· 7<br><small>（字是主人写的。果冻还不太会写字。）</small>'],
+  menu: ['今日菜单', '（看黑板上写的）<br>每两天会上一道新菜。<br><small>（字是主人写的。果冻还不太会写字。）</small>'],
   window: ['窗外', '窗外那棵是主人家的青苹果树。<br>以前，她就在树下的篱笆边，<br>啃掉下来的苹果。'],
   basket: ['她的窝', '门边的小篮子。<br>变成人以后有点挤了，<br>但她还是每晚蜷在里面睡。<br><small>枕头是一颗青苹果抱枕。</small>'],
   bell: ['门铃', '叮铃——<br>有人推门，她的耳朵会先竖起来，<br>然后才慢半拍地抬头。'],
@@ -719,7 +954,7 @@ $$('[data-note]').forEach(h => h.addEventListener('click', e => {
 addEventListener('click', e => { if (!note.contains(e.target)) note.classList.remove('on'); });
 addEventListener('keydown', e => {
   if (e.target.matches('input, textarea')) return;
-  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (sheetOpen) sheet.querySelector('[data-go="start"], [data-go="next"]')?.click(); else click('bell'); }
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (sheetOpen) sheet.querySelector('[data-go="start"], [data-go="next"], [data-go="begin"]')?.click(); else click('bell'); }
 });
 
 /* ================= main loop ================= */
@@ -739,12 +974,12 @@ window.GD = {
   spend(n) { if (save.coins < n) return false; save.coins -= n; persist(); updateHud(); return true; },
   day: () => save.day, running: () => running, say: (t) => say(t, 2200),
   closeSheet: () => { if (sheetOpen) closeSheet(); },
-  girlX: () => G.x, scale: () => K, click, kit: () => kit, customers: () => customers, clickCustomer, matchPlate,
+  girlX: () => G.x, scale: () => K, click, kit: () => kit, isOpen, customers: () => customers, clickCustomer, matchPlate,
   hint: () => { const h = document.querySelector('.spot.hint'); return h ? h.dataset.spot : null; },
 };
 let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(paintShop, 150); });
-paintShop(); updateHud();
-$('#openBtn').addEventListener('click', e => { e.stopPropagation(); if (!running && !sheetOpen) startDay(); });
+paintShop(); updateHud(); renderChalk();
+$('#openBtn').addEventListener('click', e => { e.stopPropagation(); if (!running && !sheetOpen) begin(); });
 document.fonts?.ready.then(paintShop);
 openIntro();
 requestAnimationFrame(frame);

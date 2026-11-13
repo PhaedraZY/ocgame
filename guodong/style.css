@@ -442,3 +442,7 @@ b.neg { color: #d1667e !important; }
 .paper h4 small { font-family: var(--f-hand); font-size: 12px; color: var(--soft); }
 .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 @media (max-width: 900px) { .cartbar { margin: 10px -16px -14px; bottom: -14px; padding: 8px 12px; } }
+
+.paper .order-line { text-align: center; padding: 4px 8px; background: #f3f7e6; border-radius: 10px; }
+.m-btn[hidden] { display: none; }
+.float.bad { color: #b56a6a; font-size: clamp(11px, 1.2vw, 16px); }

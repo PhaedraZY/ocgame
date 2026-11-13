@@ -253,7 +253,7 @@ function openShop() {
     <div class="cats">${cats.map(c => `<button data-cat="${c}" class="${c === shopCat ? 'on' : ''}">${H.CAT[c]}${inCat(c) ? `<sup>${inCat(c)}</sup>` : ''}</button>`).join('')}</div>
     <div class="shoplist home">${ids.map((id, i) => { const d = IT[id], lim = (hs.owned[id] || 0) >= limitOf(id), inc = cart.has(id);
       const tier = ids.length > 1 ? ['基础', '进阶', '精致', '精致'][Math.min(3, Math.round(i / (ids.length - 1) * 2))] : '';
-      return `<button class="buy ${lim ? 'owned' : ''} ${inc ? 'incart' : ''} lv${Math.min(2, Math.round(i / Math.max(1, ids.length - 1) * 2))}" data-hbuy="${id}" ${lim ? 'disabled' : ''}><i class="tier">${tier}</i>${inc ? '<i class="incart-tag">🛒 已加入</i>' : ''}<span class="ic" data-ic="${id}"></span><b>${d.name}${id === 'bed' && !hs.owned.bed && !hs.owned.mat ? ' · 推荐' : ''}</b><span>${lim ? '已经有了' : inc ? '再点一下移出' : `${d.price} 枚 · ♥${d.comfort}`}</span></button>`; }).join('')}</div>
+      return `<button class="buy ${lim ? 'owned' : ''} ${inc ? 'incart' : ''} lv${Math.min(2, Math.round(i / Math.max(1, ids.length - 1) * 2))}" data-hbuy="${id}" ${lim ? 'disabled' : ''}><i class="tier">${tier}</i>${inc ? '<i class="incart-tag">🛒 已加入</i>' : ''}<span class="ic" data-ic="${id}"></span><b>${d.name}${id === 'mat' && !hs.owned.bed && !hs.owned.mat && !hs.owned.canopy ? ' · 推荐' : ''}</b><span>${lim ? '已经有了' : inc ? '再点一下移出' : `${d.price} 枚 · ♥${d.comfort}`}</span></button>`; }).join('')}</div>
     <p class="keys">点家具加入购物车，再点一下移出。选好了点「好了」，确认后才扣钱。</p>
     <div class="cartbar ${cart.size ? 'on' : ''}">
       <span class="cart-ic">🛒 <b>${cart.size}</b></span>
@@ -318,7 +318,7 @@ function say(t, ms = 2000) { hb.textContent = t; hb.classList.add('on'); clearTi
 function squish(a = 3) { G.vsy -= a; G.vl -= a * 50; G.vr += a * 50; }
 function walkTo(x, y = 706) { G.tx = clamp(x, 70, 1130); G.ty = y; }
 function meet(pl) {
-  if (pl.id === 'bed' && !hs.bed) return bedStory(pl);
+  if ((pl.id === 'bed' || pl.id === 'mat' || pl.id === 'canopy') && !hs.bed) return bedStory(pl);
   if (hs.met.includes(pl.id)) { squish(1.5); return; }
   hs.met.push(pl.id); persist();
   G.busy = true; walkTo(pl.x + (pl.x > 640 ? -70 : 70));
@@ -494,7 +494,7 @@ function intro() {
     <p>打烊以后，主人带她穿过苹果园，停在那棵青苹果树下。</p>
     <p>树下有一间旧木头小屋。「以前是放苹果筐的，」主人推开门，「现在给你住。」</p>
     <p>屋里空空的，只有她以前睡的那个篮子。</p>
-    <p class="sign">用小店赚的硬币，去<b>家具店</b>买东西，再从<b>收纳箱</b>里拖进房间摆好吧。<br>先买一张床，怎么样？</p>
+    <p class="sign">用小店赚的硬币，去<b>家具店</b>买东西，再从<b>收纳箱</b>里拖进房间摆好吧。<br>先买一张床，怎么样？（稻草小床垫就很便宜）</p>
     <div class="row"><button class="btn" data-hgo="in">进去看看 →</button></div></div>`;
   hsheet.className = 'sheet on';
   hsheet.querySelector('[data-hgo="in"]').addEventListener('click', () => { hs.intro = true; persist(); closeSheet(); say('……这里，是我的？', 2200); G.vl -= 260; G.vr += 260; });
