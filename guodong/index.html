@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>果冻的小店 · 青苹果兔兔甜品屋</title>
+<meta name="description" content="主人出门进货了，今天前台交给小兔果冻。来帮她接单、做果冻和布丁，经营三天小店吧。">
+<meta name="theme-color" content="#f3eee2">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cellipse cx='22' cy='18' rx='7' ry='16' fill='%23bcd97a' stroke='%237a6c66' stroke-width='3'/%3E%3Cellipse cx='42' cy='18' rx='7' ry='16' fill='%23bcd97a' stroke='%237a6c66' stroke-width='3'/%3E%3Ccircle cx='32' cy='42' r='19' fill='%23bcd97a' stroke='%237a6c66' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://npm.elemecdn.com/lxgw-wenkai-webfont@1.7.0/style.css">
+<link rel="stylesheet" href="https://fonts.loli.net/css2?family=ZCOOL+KuaiLe&family=Caveat:wght@600&display=swap">
+<link rel="stylesheet" href="style.css?v=10">
+</head>
+<body>
+
+<header class="top">
+  <p class="date">a little shop · 主人不在家</p>
+  <h1><span class="tape t1"></span>果冻的小店</h1>
+  <p class="sub">青苹果兔兔甜品屋 —— 今天，前台交给一只刚变成人的小兔。</p>
+  <nav class="tabs" aria-label="切换场景"><button class="on" data-view="shop">🍮 小店</button><button data-view="home">🏠 小屋</button></nav>
+  <div class="music" id="music"><button>🎵 音乐：开</button><input type="range" min="0" max="100" aria-label="音量"></div>
+</header>
+
+<main class="spread shop-view">
+  <div class="card">
+    <span class="tape t2"></span><span class="tape t3"></span>
+    <div class="shop" id="shop">
+      <canvas id="back"></canvas>
+      <div class="chalk" aria-hidden="true">
+        <b>MENU</b>
+        <span>牛奶布丁 ··· 6</span><span>青苹果果冻 · 7</span>
+        <small>今日营业中</small>
+      </div>
+      <button class="sticky" data-note="owner">给果冻<br>的便签</button>
+      <div id="backStations"></div>
+      <div id="puffs"></div>
+
+      <div id="girl" role="button" tabindex="0" aria-label="果冻（可以戳一戳）">
+        <div class="g-jelly">
+          <img class="ear ear-l" src="assets/earL.webp" alt="" draggable="false">
+          <img class="ear ear-r" src="assets/earR.webp" alt="" draggable="false">
+          <img class="body" src="assets/body.webp" alt="果冻：戴兔耳发箍、绿色双马尾的女孩，站在柜台后面" draggable="false">
+        </div>
+        <p class="gbubble" id="gbubble" aria-live="polite"></p>
+      </div>
+
+      <canvas id="front"></canvas>
+      <div id="frontStations"></div>
+      <canvas id="held" aria-hidden="true"></canvas>
+      <div class="lamp-glow l1"></div><div class="sunlight"></div>
+      <div id="rings"></div>
+
+      <div id="custLayer"></div>
+      <div id="spots"></div>
+      <div id="fxLayer"></div>
+
+      <button class="hot" data-note="menu" style="left:67.3%;top:11.4%;width:10%;height:18.3%" aria-label="菜单"></button>
+      <button class="hot" data-note="window" style="left:27.2%;top:12.5%;width:19%;height:27.8%" aria-label="窗外"></button>
+      <button class="hot" data-note="basket" style="left:71.2%;top:84.5%;width:12.6%;height:12%" aria-label="她的窝"></button>
+      <button class="hot" id="doorbell" data-note="bell" style="left:79%;top:23.5%;width:3.6%;height:6%" aria-label="门铃"><i>叮铃♪</i></button>
+
+      <div class="hud">
+        <span class="day" id="dayTag">第一天</span>
+        <span class="sunbar" id="sunbar" title="营业时间"><i></i></span>
+        <span id="hudGoal">休息中</span>
+        <span class="coin"><i></i><b id="hudCoins">0</b></span>
+      </div>
+      <button class="btn open-btn" id="openBtn">开店营业 →</button>
+      <p class="tip" id="tip"></p>
+
+      <div class="note" id="note"><h4></h4><p></p></div>
+      <div class="sheet" id="sheet"></div>
+    </div>
+  </div>
+
+  <aside class="margin">
+    <p class="hand">✎ 怎么玩</p>
+    <p class="hand small">点架子上的原料、<br>柜台上的碗和砧板、<br>身后的锅、蒸笼和冰箱，<br>果冻会蹦过去做。</p>
+    <p class="hand small">锅和蒸笼有进度圈：<br>转满就好了，<br>变橙色就快焦了！</p>
+    <p class="hand small">♥ 变少 = 客人等急了。<br>做得快有小费。</p>
+  </aside>
+</main>
+
+<section class="spread home-view" aria-label="果冻的小屋">
+  <div class="card home-card">
+    <span class="tape t2"></span><span class="tape t3"></span>
+    <div class="room" id="room">
+      <canvas id="roomCanvas"></canvas>
+      <div id="homeItems"></div>
+      <div id="hgirl" role="button" tabindex="0" aria-label="果冻（可以戳一戳）">
+        <div class="g-jelly">
+          <img class="ear ear-l" src="assets/earL.webp" alt="" draggable="false">
+          <img class="ear ear-r" src="assets/earR.webp" alt="" draggable="false">
+          <img class="body" src="assets/body.webp" alt="果冻" draggable="false">
+        </div>
+      </div>
+      <div id="nightShade"></div>
+      <div id="glows"></div>
+      <div id="homeFx"></div>
+      <button class="rspot" data-r="window" style="left:19.7%;top:22.2%;width:32%;height:38.4%" aria-label="窗户"></button>
+      <button class="rspot" data-r="bulb" style="left:56.8%;top:13.6%;width:3%;height:6.6%" aria-label="灯泡"></button>
+      <button class="rspot" data-r="door" style="left:73.3%;top:32.8%;width:14.2%;height:44.4%" aria-label="门"></button>
+      <p class="gbubble hb" id="hbubble" aria-live="polite"></p>
+      <div class="hud">
+        <span class="day">苹果园小屋</span>
+        <button class="nightbtn" id="nightBtn">🌙 夜晚</button>
+        <span>舒适度 ♥ <b id="homeComfort">0</b></span>
+        <span class="coin"><i></i><b id="homeCoins">0</b></span>
+      </div>
+      <div class="selbar" id="selbar">
+        <b data-a="name"></b>
+        <button data-a="flip">翻转</button><button data-a="front">往前</button><button data-a="back">往后</button><button data-a="store">收起</button>
+      </div>
+      <div class="note" id="hnote"><h4></h4><p></p></div>
+      <div class="sheet" id="hsheet"></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="box-head"><b>📦 收纳箱</b><span>拖进房间摆好 · 点房间里的东西可以翻转、调前后、收起</span>
+      <button class="btn" id="openFurni">家具店</button><button class="btn ghost" id="backToShop">回小店 →</button></div>
+    <div class="box-list" id="boxList"></div>
+  </div>
+</section>
+
+
+
+<footer class="foot"><a href="../">← 回到 OC 小宇宙</a></footer>
+
+<script src="sketch.js?v=10"></script>
+<script src="art.js?v=10"></script>
+<script src="bgm.js?v=10"></script>
+<script src="game.js?v=10"></script>
+<script src="home-art.js?v=10"></script>
+<script src="home.js?v=10"></script>
+</body>
+</html>
