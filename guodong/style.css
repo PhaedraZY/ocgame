@@ -28,9 +28,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   background: repeating-linear-gradient(90deg, #cfe3a5 0 10px, #e3efc6 10px 20px);
   mask: radial-gradient(circle at 0 50%, transparent 4px, #000 4.5px) left / 51% 100% no-repeat, radial-gradient(circle at 100% 50%, transparent 4px, #000 4.5px) right / 51% 100% no-repeat;
   -webkit-mask: radial-gradient(circle at 0 50%, transparent 4px, #000 4.5px) left / 51% 100% no-repeat, radial-gradient(circle at 100% 50%, transparent 4px, #000 4.5px) right / 51% 100% no-repeat; }
-.t1 { left: -26px; top: 6px; transform: rotate(-8deg); width: 90px; background: repeating-linear-gradient(90deg, #f4cad3 0 8px, #fbe3e8 8px 16px); }
-.t2 { left: -30px; top: -12px; transform: rotate(-24deg); }
-.t3 { right: -30px; top: -10px; transform: rotate(20deg); background: radial-gradient(#a3bfdd 2.2px, transparent 2.8px) 0 0 / 12px 12px, #f7f4ec; }
+.tape.t1 { left: -26px; top: 6px; transform: rotate(-8deg); width: 90px; background: repeating-linear-gradient(90deg, #f4cad3 0 8px, #fbe3e8 8px 16px); }
+.tape.t2 { left: -30px; top: -12px; transform: rotate(-24deg); }
+.tape.t3 { right: -30px; top: -10px; transform: rotate(20deg); background: radial-gradient(#a3bfdd 2.2px, transparent 2.8px) 0 0 / 12px 12px, #f7f4ec; }
 
 /* ---------- header ---------- */
 .top { text-align: center; padding: 22px 20px 8px; }
@@ -314,8 +314,8 @@ body.at-home .home-view { display: flex; }
 .shoplist.home .buy { position: relative; }
 .shoplist.home .ic { height: 80px; }
 .buy .tier { position: absolute; left: 6px; top: 4px; font-style: normal; font-size: 11px; padding: 0 6px; border-radius: 8px; background: #f3eee2; color: var(--soft); }
-.buy.t2 .tier, .buy.t3 .tier { background: #fbe7a6; color: #9a7a2e; }
-.buy.t2, .buy.t3 { border-color: #e9c46a; }
+.buy.lv2 .tier { background: #fbe7a6; color: #9a7a2e; }
+.buy.lv2 { border-color: #e9c46a; border-style: solid; background: #fffbef; }
 
 /* music toggle + open-shop button */
 .music { display: inline-flex; align-items: center; gap: 6px; margin: 10px 0 0 10px; padding: 3px 10px 3px 4px; background: #fffdf6; border: 1.8px solid var(--line); border-radius: 22px 18px 24px 16px; vertical-align: top; }
@@ -356,3 +356,6 @@ body.at-home .home-view { display: flex; }
 .hspark { position: absolute; font-style: normal; color: #f2d47c; font-size: clamp(10px, 1.2vw, 16px); animation: spark .9s ease-out forwards; }
 .petal { position: absolute; width: .9%; aspect-ratio: 1.4; border-radius: 60% 0 60% 0; background: #fbe3e8; border: 1px solid #e7a4b4aa; animation: petal 4s ease-in-out forwards; }
 @keyframes petal { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(540deg); } }
+.shoplist.home { align-items: stretch; }
+.shoplist.home .buy { min-height: 150px; justify-content: flex-start; padding-top: 20px; }
+.shoplist.home .buy b { margin-top: 4px; }

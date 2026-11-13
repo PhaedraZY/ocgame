@@ -106,8 +106,8 @@ const SPOTS = {
   plate0:  { r: [372, 356, 76, 60], x: 410, tag: '盘子' },
   plate1:  { r: [452, 356, 76, 60], x: 490, tag: '盘子' },
   plate2:  { r: [532, 356, 76, 60], x: 570, tag: '盘子' },
-  caramel: { r: [626, 336, 50, 80], x: 650, tag: '焦糖' },
-  fridge:  { r: [642, 238, 146, 172], x: 715, tag: '冰箱' },
+  caramel: { r: [620, 334, 62, 84], x: 650, tag: '焦糖' },
+  fridge:  { r: [652, 150, 136, 182], x: 715, tag: '冰箱' },
   bell:    { r: [814, 374, 60, 42], x: 842, tag: '出餐铃（空格）' },
 };
 const spotEls = {};
@@ -201,6 +201,7 @@ function act(steps) {
 }
 const sx = id => SPOTS[id].x;
 const freePlate = () => kit.plates.findIndex(p => p === null);
+const snd = n => { const f = typeof BGM !== 'undefined' && BGM.sfx && BGM.sfx[n]; f && f(); };
 function click(id) {
   if (sheetOpen) return;
   pulse(id);
@@ -212,7 +213,7 @@ function click(id) {
       return act([{ x: sx(id), fn: () => carry(id) }, { x: sx('bowl'), fn: () => {
         carry(null);
         if (kit.bowl[id] || kit.bowl.mixed) return no(`${NAME[id]}……放不下了。`);
-        kit.bowl[id] = true; renderStation('bowl'); sparkle('bowl');
+        kit.bowl[id] = true; renderStation('bowl'); sparkle('bowl'); snd('place');
       } }]);
     }
     case 'apple': {
@@ -220,7 +221,7 @@ function click(id) {
       return act([{ x: sx('apple'), fn: () => carry('apple') }, { x: sx('board'), fn: () => {
         carry(null);
         if (kit.board.state !== 'empty') return no('砧板上已经有东西了。');
-        kit.board = { state: 'apple', chop: 0 }; renderStation('board');
+        kit.board = { state: 'apple', chop: 0 }; renderStation('board'); snd('place');
       } }]);
     }
     case 'gel': {
@@ -229,7 +230,7 @@ function click(id) {
       return act([{ x: sx('gel'), fn: () => carry('gel') }, { x: sx('stove'), fn: () => {
         carry(null);
         if (kit.pot.state !== 'idle' || kit.pot.gel) return no('锅里放不下了。');
-        kit.pot.gel = true; tryCook(); renderStation('stove');
+        kit.pot.gel = true; snd('place'); tryCook(); renderStation('stove');
       } }]);
     }
     case 'bowl': {
@@ -237,11 +238,11 @@ function click(id) {
         if (stm.state !== 'empty') return no(stm.state === 'steaming' ? '蒸笼正在蒸……' : '先把蒸笼里的拿出来。');
         stm.state = RES;
         return act([{ x: sx('bowl'), fn: () => { carry('batter'); kit.bowl = freshKit().bowl; renderStation('bowl'); } },
-                    { x: sx('steamer'), fn: () => { carry(null); kit.steamer = { state: 'steaming', t: 0 }; renderStation('steamer'); say('蒸、蒸上了。', 1200); } }]);
+                    { x: sx('steamer'), fn: () => { carry(null); kit.steamer = { state: 'steaming', t: 0 }; renderStation('steamer'); snd('pour'); say('蒸、蒸上了。', 1200); } }]);
       }
       if (b.egg && b.milk && b.sugar) return act([{ x: sx('bowl'), fn: () => {
         const bb = kit.bowl; if (bb.mixed || !(bb.egg && bb.milk && bb.sugar)) return false;
-        bb.stir++; if (bb.stir >= 3) { bb.mixed = true; say('搅匀了！', 1000); } renderStation('bowl'); squish(2);
+        bb.stir++; snd('stir'); if (bb.stir >= 3) { bb.mixed = true; say('搅匀了！', 1000); } renderStation('bowl'); squish(2);
       } }]);
       const miss = ['egg', 'milk', 'sugar'].filter(k => !b[k]).map(k => NAME[k]).join('、');
       return no(`布丁要：鸡蛋、牛奶、糖。\n还差${miss}。`);
@@ -251,12 +252,12 @@ function click(id) {
       if (bd.state === 'empty') return no('先拿一颗青苹果来。');
       if (bd.state === 'apple') return act([{ x: sx('board'), fn: () => {
         if (kit.board.state !== 'apple') return false;
-        kit.board.chop++; if (kit.board.chop >= 3) kit.board.state = 'chopped'; renderStation('board'); squish(2);
+        kit.board.chop++; snd('chop'); if (kit.board.chop >= 3) kit.board.state = 'chopped'; renderStation('board'); squish(2);
       } }]);
       if (pot.state !== 'idle') return no('锅还在用……');
       if (pot.apple) return no('锅里已经有苹果了。');
       return act([{ x: sx('board'), fn: () => { if (kit.board.state !== 'chopped') return false; carry('chopped'); kit.board = { state: 'empty', chop: 0 }; renderStation('board'); } },
-                  { x: sx('stove'), fn: () => { carry(null); if (kit.pot.state !== 'idle' || kit.pot.apple) return no('锅……放不下了。'); kit.pot.apple = true; tryCook(); renderStation('stove'); } }]);
+                  { x: sx('stove'), fn: () => { carry(null); if (kit.pot.state !== 'idle' || kit.pot.apple) return no('锅……放不下了。'); kit.pot.apple = true; snd('place'); tryCook(); renderStation('stove'); } }]);
     }
     case 'stove': {
       if (pot.state === 'cooking') return no('还在煮……');
@@ -266,7 +267,7 @@ function click(id) {
         if (slot < 0) return no('冰箱满了……');
         kit.fridge[slot].state = RES;
         return act([{ x: sx('stove'), fn: () => { if (kit.pot.state === 'burnt') { kit.fridge[slot].state = 'empty'; return no('……啊，焦了。'); } carry('mold'); kit.pot = freshKit().pot; renderStation('stove'); setRing('stove'); } },
-                    { x: sx('fridge'), fn: () => { carry(null); kit.fridge[slot] = { state: 'chill', t: 0 }; renderStation('fridge' + slot); say('放进冰箱。\n等它凝固。', 1300); } }]);
+                    { x: sx('fridge'), fn: () => { carry(null); kit.fridge[slot] = { state: 'chill', t: 0 }; renderStation('fridge' + slot); snd('fridge'); say('放进冰箱。\n等它凝固。', 1300); } }]);
       }
       const need = [!pot.apple && '切好的青苹果', !pot.gel && '吉利丁'].filter(Boolean).join('、');
       return no(`果冻要：切好的青苹果 + 吉利丁。\n还差${need}。`);
@@ -278,7 +279,7 @@ function click(id) {
         const pi = freePlate(); if (pi < 0) return no('没有空盘子了……');
         kit.plates[pi] = RES;
         return act([{ x: sx('steamer'), fn: () => { if (kit.steamer.state === 'burnt') { kit.plates[pi] = null; return no('……蒸老了。'); } carry('pudding', { dish: 'pudding', caramel: false }); kit.steamer = { state: 'empty', t: 0 }; renderStation('steamer'); setRing('steamer'); } },
-                    { x: sx('plate' + pi), fn: () => { carry(null); kit.plates[pi] = { dish: 'pudding', caramel: false }; renderStation('plate' + pi); } }]);
+                    { x: sx('plate' + pi), fn: () => { carry(null); kit.plates[pi] = { dish: 'pudding', caramel: false }; renderStation('plate' + pi); snd('place'); } }]);
       }
       return no('蒸笼是空的。\n先在搅拌碗里做布丁液。');
     }
@@ -287,14 +288,14 @@ function click(id) {
       if (slot < 0) return no(kit.fridge.some(s => s.state === 'chill') ? '还没凝固……再等等。' : '冰箱里没有果冻。');
       const pi = freePlate(); if (pi < 0) return no('没有空盘子了……');
       kit.plates[pi] = RES; kit.fridge[slot].state = RES;
-      return act([{ x: sx('fridge'), fn: () => { carry('jelly', { dish: 'jelly' }); kit.fridge[slot] = { state: 'empty', t: 0 }; renderStation('fridge' + slot); setRing('fridge' + slot); } },
-                  { x: sx('plate' + pi), fn: () => { carry(null); kit.plates[pi] = { dish: 'jelly' }; renderStation('plate' + pi); sparkle('plate' + pi); } }]);
+      return act([{ x: sx('fridge'), fn: () => { snd('fridge'); carry('jelly', { dish: 'jelly' }); kit.fridge[slot] = { state: 'empty', t: 0 }; renderStation('fridge' + slot); setRing('fridge' + slot); } },
+                  { x: sx('plate' + pi), fn: () => { carry(null); kit.plates[pi] = { dish: 'jelly' }; renderStation('plate' + pi); sparkle('plate' + pi); snd('place'); } }]);
     }
     case 'caramel': {
       const pi = kit.plates.findIndex(it => it && it !== RES && it.dish === 'pudding' && !it.caramel);
       if (pi < 0) return no('没有要淋焦糖的布丁。');
       return act([{ x: sx('caramel'), fn: () => carry('caramel') },
-                  { x: sx('plate' + pi), fn: () => { carry(null); const it = kit.plates[pi]; if (!it || it === RES || it.caramel) return false; it.caramel = true; renderStation('plate' + pi); sparkle('plate' + pi); } }]);
+                  { x: sx('plate' + pi), fn: () => { carry(null); const it = kit.plates[pi]; if (!it || it === RES || it.caramel) return false; it.caramel = true; renderStation('plate' + pi); sparkle('plate' + pi); snd('pour'); } }]);
     }
     case 'plate0': case 'plate1': case 'plate2': return servePlate(+id.slice(5));
     case 'bell': {
@@ -303,7 +304,7 @@ function click(id) {
     }
   }
 }
-function tryCook() { if (kit.pot.apple && kit.pot.gel && kit.pot.state === 'idle') { kit.pot.state = 'cooking'; kit.pot.t = 0; say('煮、煮上了。', 1100); } }
+function tryCook() { if (kit.pot.apple && kit.pot.gel && kit.pot.state === 'idle') { kit.pot.state = 'cooking'; kit.pot.t = 0; snd('sizzle'); say('煮、煮上了。', 1100); } }
 const complete = it => it && it !== RES && (it.dish !== 'pudding' || it.caramel);
 const matchPlate = cu => kit.plates.findIndex(it => complete(it) && !it.taken && it.dish === cu.order);
 function servePlate(pi, target) {
@@ -359,8 +360,8 @@ function updateKitchen(dt) {
     if (s.state === 'burnt') puff(228, 190, true);
   }
 }
-function burnt(t) { say(t, 1600); mood('startle', 1.4); G.vl += 300; G.vr -= 300; squish(2.5); }
-function ding(k) { const r = rings[k]; if (!r) return; r.classList.remove('ding'); void r.offsetWidth; r.classList.add('ding'); G.vl -= 160; G.vr += 160; }
+function burnt(t) { snd('burnt'); say(t, 1600); mood('startle', 1.4); G.vl += 300; G.vr -= 300; squish(2.5); }
+function ding(k) { snd('ready'); const r = rings[k]; if (!r) return; r.classList.remove('ding'); void r.offsetWidth; r.classList.add('ding'); G.vl -= 160; G.vr += 160; }
 
 /* ================= customers & queue ================= */
 const COUNTER = [270, 480, 690];
@@ -441,7 +442,7 @@ function updateCustomers(dt) {
     }
     if (!sheetOpen && cu.phase !== 'leave' && (cu.qi >= 0 || cu.ci >= 0) && !cu.served) {
       cu.remain -= dt * (cu.qi >= 0 ? .35 : 1);
-      if (cu.remain <= 0) { day.missed++; leave(cu, cu.type.leave); mood('sad', 2.2); say(pick(['……（耳朵耷拉下来）', '……对不起。', '……噗。下次快一点。']), 2000); continue; }
+      if (cu.remain <= 0) { day.missed++; snd('sad'); leave(cu, cu.type.leave); mood('sad', 2.2); say(pick(['……（耳朵耷拉下来）', '……对不起。', '……噗。下次快一点。']), 2000); continue; }
     }
     cu.hearts.textContent = heartsText(cu);
     cu.bub.classList.toggle('hurry', cu.remain < cu.patience * .34 && cu.phase !== 'leave');
@@ -465,7 +466,7 @@ function serve(cu, it) {
   const hearts = clamp(Math.ceil(cu.remain / cu.patience * 3), 0, 3);
   const tip = Math.max(0, hearts - 1) * cu.type.tip;
   const coins = PRICE[it.dish] + tip;
-  save.coins += coins; day.coins += coins; day.ok++; save.served++; persist();
+  save.coins += coins; day.coins += coins; day.ok++; save.served++; persist(); snd('coin'); setTimeout(() => snd('happy'), 260);
   floatText(cu.cx, 540, `+${coins}${tip ? `（小费 ${tip}）` : ''}`); hearts3(cu.cx, 580);
   mood('happy', 2.2); squish(3);
   say(pick(['……请慢用。', '做好了！', '（鼻子动了动）\n……好吃吗？', '嘿嘿。']), 1600);
@@ -473,7 +474,7 @@ function serve(cu, it) {
   updateHud();
 }
 function ringDoor() {
-  G.vl -= 240; G.vr += 240;
+  snd('bell'); G.vl -= 240; G.vr += 240;
   const d = $('#doorbell'); d.classList.remove('ring'); void d.offsetWidth; d.classList.add('ring');
 }
 

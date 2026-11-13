@@ -238,7 +238,7 @@ function openShop() {
     <div class="cats">${cats.map(c => `<button data-cat="${c}" class="${c === shopCat ? 'on' : ''}">${H.CAT[c]}</button>`).join('')}</div>
     <div class="shoplist home">${ids.map((id, i) => { const d = IT[id], lim = (hs.owned[id] || 0) >= limitOf(id);
       const tier = ids.length > 1 ? ['基础', '进阶', '精致', '精致'][Math.min(3, Math.round(i / (ids.length - 1) * 2))] : '';
-      return `<button class="buy ${lim ? 'owned' : ''} t${i}" data-hbuy="${id}" ${lim ? 'disabled' : ''}><i class="tier">${tier}</i><span class="ic" data-ic="${id}"></span><b>${d.name}${id === 'bed' && !hs.owned.bed && !hs.owned.mat ? ' · 推荐' : ''}</b><span>${lim ? '已经有了' : `${d.price} 枚 · ♥${d.comfort}`}</span></button>`; }).join('')}</div>
+      return `<button class="buy ${lim ? 'owned' : ''} lv${Math.min(2, Math.round(i / Math.max(1, ids.length - 1) * 2))}" data-hbuy="${id}" ${lim ? 'disabled' : ''}><i class="tier">${tier}</i><span class="ic" data-ic="${id}"></span><b>${d.name}${id === 'bed' && !hs.owned.bed && !hs.owned.mat ? ' · 推荐' : ''}</b><span>${lim ? '已经有了' : `${d.price} 枚 · ♥${d.comfort}`}</span></button>`; }).join('')}</div>
     <p class="keys">买了会放进收纳箱，再拖进房间。舒适度越高，果冻第二天心情越好。</p>
     <div class="row"><button class="btn" data-hgo="close">好了</button></div></div>`;
   hsheet.className = 'sheet on';

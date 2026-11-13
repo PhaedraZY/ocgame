@@ -55,10 +55,32 @@ const BGM = (() => {
     o.connect(g).connect(a.destination); o.start(t0); o.stop(t0 + dur + .05);
   }
   const midi = n => 440 * Math.pow(2, (n - 69) / 12);
+  let noiseBuf = null;
+  function noise(t0, dur, vol, freq, q = 1, type = 'bandpass', sweep) {
+    const a = ctx(); if (!a) return;
+    if (!noiseBuf) { noiseBuf = a.createBuffer(1, a.sampleRate, a.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    src.buffer = noiseBuf; f.type = type; f.frequency.value = freq; f.Q.value = q;
+    if (sweep) f.frequency.exponentialRampToValueAtTime(sweep, t0 + dur);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .01); g.gain.exponentialRampToValueAtTime(.0005, t0 + dur);
+    src.connect(f).connect(g).connect(a.destination); src.start(t0); src.stop(t0 + dur + .05);
+  }
   const sfx = {
     tick() { const a = ctx(); if (a) tone(1800, a.currentTime, .05, .06, 'square'); },
     ding() { const a = ctx(); if (!a) return; tone(1318, a.currentTime, 1.2, .1); tone(2637, a.currentTime, .6, .03); },
     pop() { const a = ctx(); if (a) tone(520, a.currentTime, .12, .08, 'triangle'); },
+    chop() { const a = ctx(); if (!a) return; const t = a.currentTime; noise(t, .06, .22, 2600, 2); tone(140, t, .08, .12, 'triangle'); },
+    stir() { const a = ctx(); if (!a) return; noise(a.currentTime, .32, .07, 900, 1.5, 'bandpass', 2200); },
+    place() { const a = ctx(); if (!a) return; tone(380, a.currentTime, .09, .07, 'triangle'); tone(760, a.currentTime + .02, .06, .03); },
+    pour() { const a = ctx(); if (!a) return; const t = a.currentTime; noise(t, .5, .06, 500, 3, 'bandpass', 1200); for (let i = 0; i < 4; i++) tone(500 + Math.random() * 300, t + .08 + i * .09, .06, .025); },
+    sizzle() { const a = ctx(); if (!a) return; noise(a.currentTime, .8, .045, 4500, .7, 'highpass'); },
+    ready() { const a = ctx(); if (!a) return; const t = a.currentTime; tone(midi(84), t, .5, .09); tone(midi(88), t + .12, .7, .09); tone(midi(91), t + .24, .9, .07); },
+    burnt() { const a = ctx(); if (!a) return; const t = a.currentTime; for (let i = 0; i < 3; i++) tone(330 - i * 30, t + i * .18, .16, .06, 'square'); noise(t, .6, .05, 800, .8, 'lowpass'); },
+    fridge() { const a = ctx(); if (!a) return; const t = a.currentTime; tone(110, t, .12, .1, 'triangle'); noise(t, .1, .05, 1500, 1); },
+    bell() { const a = ctx(); if (!a) return; const t = a.currentTime; tone(midi(88), t, 1, .07); tone(midi(93), t + .1, 1.1, .06); },
+    coin() { const a = ctx(); if (!a) return; const t = a.currentTime; tone(midi(83), t, .12, .07, 'square'); tone(midi(88), t + .08, .35, .07, 'square'); tone(midi(96), t + .2, .5, .04); },
+    happy() { const a = ctx(); if (!a) return; const t = a.currentTime; [72, 76, 79, 84].forEach((n, i) => tone(midi(n), t + i * .07, .4, .06)); },
+    sad() { const a = ctx(); if (!a) return; const t = a.currentTime; tone(midi(67), t, .3, .06, 'triangle'); tone(midi(63), t + .22, .5, .06, 'triangle'); },
     drip() { const a = ctx(); if (!a) return; for (let i = 0; i < 4; i++) tone(1400 + Math.random() * 600, a.currentTime + i * .12, .08, .05); },
     // an original little music-box tune that slows down as the spring winds out
     musicBox(seconds = 10, onEnd) {
