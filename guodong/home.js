@@ -478,6 +478,7 @@ function frame(now) {
 function show() {
   if (GD.running()) { GD.say('还在营业……\n打烊以后再回家。'); return; }
   if (GD.day() < 2) { GD.say('第一天打烊以后，\n主人说要带我去一个地方。'); return; }
+  GD.closeSheet && GD.closeSheet();   // the day report / welcome note belongs to the shop
   document.body.classList.add('at-home'); shown = true; if (typeof BGM !== 'undefined') BGM.scene('home');
   $$('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === 'home'));
   updateNightBtn(); paintRoom(); if (!hs.intro) intro(); else say(pick(['……回来了。', '（伸了个懒腰）', '今天也辛苦了。']), 1600);
@@ -485,6 +486,7 @@ function show() {
 }
 function hide() {
   document.body.classList.remove('at-home'); shown = false; select(null); if (typeof BGM !== 'undefined') BGM.scene('shop');
+  closeSheet(); note.classList.remove('on');
   $$('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === 'shop'));
 }
 function intro() {

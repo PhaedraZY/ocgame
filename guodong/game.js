@@ -738,6 +738,7 @@ window.GD = {
   coins: () => save.coins,
   spend(n) { if (save.coins < n) return false; save.coins -= n; persist(); updateHud(); return true; },
   day: () => save.day, running: () => running, say: (t) => say(t, 2200),
+  closeSheet: () => { if (sheetOpen) closeSheet(); },
   girlX: () => G.x, scale: () => K, click, kit: () => kit, customers: () => customers, clickCustomer, matchPlate,
   hint: () => { const h = document.querySelector('.spot.hint'); return h ? h.dataset.spot : null; },
 };
