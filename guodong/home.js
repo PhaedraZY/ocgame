@@ -119,7 +119,7 @@ function startDrag(e, uid) {
   const pl = byUid(uid); if (!pl) return;
   const [lx, ly] = toLogical(e);
   const kids = [...descendants(uid)].filter(u => u !== uid).map(u => byUid(u));
-  drag = { uid, id: pl.id, ox: lx - pl.x, oy: ly - pl.y, start: { x: pl.x, y: pl.y, parent: pl.parent }, moved: false, sx: e.clientX, sy: e.clientY, kids: kids.map(k => ({ pl: k, dx: k.x - pl.x, dy: k.y - pl.y })), fromBox: false, res: null };
+  drag = { touch: e.pointerType === 'touch', t0: performance.now(), uid, id: pl.id, ox: lx - pl.x, oy: ly - pl.y, start: { x: pl.x, y: pl.y, parent: pl.parent }, moved: false, sx: e.clientX, sy: e.clientY, kids: kids.map(k => ({ pl: k, dx: k.x - pl.x, dy: k.y - pl.y })), fromBox: false, res: null };
   capture(e);
 }
 function startBoxDrag(e, id) {
@@ -136,6 +136,10 @@ function capture(e) {
 }
 function moveDrag(e) {
   if (!drag) return;
+  if (drag.touch && !drag.moved && !drag.fromBox) {
+    const dist = Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy);
+    if (performance.now() - drag.t0 < 220) { if (dist > 8) { removeEventListener('pointermove', moveDrag); drag = null; } return; }
+  }
   if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 5) return;
   if (!drag.moved) { drag.moved = true; select(null); room.classList.add('dragging'); }
   const [lx, ly] = toLogical(e);
@@ -224,7 +228,13 @@ function renderBox() {
   for (const id of ids) {
     const b = document.createElement('div'); b.className = 'boxitem'; b.title = '拖进房间';
     b.append(icon(id, 54)); const t = document.createElement('span'); t.textContent = IT[id].name + (avail(id) > 1 ? ` ×${avail(id)}` : ''); b.append(t);
-    b.addEventListener('pointerdown', e => startBoxDrag(e, id));
+    b.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'touch') return startBoxDrag(e, id);
+      const sx = e.clientX, sy = e.clientY, t0 = performance.now();
+      const mv = ev => { const dx = ev.clientX - sx, dy = ev.clientY - sy; if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) return done(); if (dy < -10 || performance.now() - t0 > 260) { done(); startBoxDrag(ev, id); } };
+      const done = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', done); };
+      addEventListener('pointermove', mv); addEventListener('pointerup', done);
+    });
     boxList.append(b);
   }
 }
@@ -457,5 +467,5 @@ let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() 
 document.fonts?.ready.then(() => shown && paintRoom());
 requestAnimationFrame(frame);
 
-return { show, hide, comfort, refresh: updateHud };
+return { show, hide, comfort, refresh: updateHud, isDragging: () => !!(drag && drag.moved), repaint: () => shown && paintRoom() };
 })();

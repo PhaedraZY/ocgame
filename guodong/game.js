@@ -584,6 +584,7 @@ function endDay() {
 function updateHud() {
   const cfg = cfgOf(save.day);
   $('#hudCoins').textContent = save.coins;
+  if (!running) $('#dayTag').textContent = cfg.title;
   $('#hudGoal').textContent = running ? `今日 ${day.coins} · 目标 ★${cfg.stars[0]} ★★${cfg.stars[1]} ★★★${cfg.stars[2]}` : '休息中';
 }
 
@@ -713,6 +714,8 @@ window.GD = {
   coins: () => save.coins,
   spend(n) { if (save.coins < n) return false; save.coins -= n; persist(); updateHud(); return true; },
   day: () => save.day, running: () => running, say: (t) => say(t, 2200),
+  girlX: () => G.x, scale: () => K, click, kit: () => kit, customers: () => customers, clickCustomer, matchPlate,
+  hint: () => { const h = document.querySelector('.spot.hint'); return h ? h.dataset.spot : null; },
 };
 let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(paintShop, 150); });
 paintShop(); updateHud();
