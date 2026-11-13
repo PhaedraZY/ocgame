@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="locked">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>零一 · Zero One — 心电图天使</title>
+<meta name="description" content="零一，心电图天使。心率常年 60，情绪常年平稳。一本铅笔画的观察手账。">
+<meta name="theme-color" content="#fbfdff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M4 36 H20 L26 22 L32 50 L38 12 L44 36 H60' fill='none' stroke='%23d9475a' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://npm.elemecdn.com/lxgw-wenkai-webfont@1.7.0/style.css">
+<link rel="stylesheet" href="https://fonts.loli.net/css2?family=Caveat:wght@500;700&family=Share+Tech+Mono&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="room.css">
+<link rel="stylesheet" href="game.css">
+</head>
+<body class="locked">
+
+<!-- ============ shared svg defs ============ -->
+<svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="wobble-s" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="2" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="1.5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <symbol id="i-feather" viewBox="0 0 40 80">
+      <path d="M20 78 C20 60 20 40 21 4" fill="none" stroke="#8d93a3" stroke-width="2" stroke-linecap="round"/>
+      <path d="M21 6 C33 14 36 30 32 46 C29 56 24 62 20 66 C14 58 9 48 9 36 C9 22 13 12 21 6 Z" fill="#fff" stroke="#8d93a3" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M20 22 L28 18 M20 32 L30 27 M20 42 L29 38 M20 30 L12 26 M20 41 L11 37 M20 52 L14 49" stroke="#cfe6fb" stroke-width="1.6" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-scrap" viewBox="0 0 60 44">
+      <path d="M4 5 L55 2 L57 39 L6 42 Z" fill="#fff" stroke="#8d93a3" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M10 16 H22 L25 9 L28 24 L31 13 H48 M10 28 H44 M10 34 H34" fill="none" stroke="#6fb7f5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-heart" viewBox="0 0 32 30">
+      <path d="M16 27 C6 20 2 14 3 9 C4 4 9 2 12.5 4 C14.5 5 15.6 6.6 16 8 C16.6 6.4 17.8 5 19.8 4 C23.5 2.2 28.4 4.2 29 9.4 C29.6 14.4 25.4 20.2 16 27 Z" fill="#d9475a" stroke="#a83445" stroke-width="1.6" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div id="grid" aria-hidden="true"></div>
+<div id="fx" aria-hidden="true"></div>
+
+<!-- ============ 序章 ============ -->
+<div id="intro" role="dialog" aria-label="序章">
+  <div class="intro-inner">
+    <p class="intro-tag" id="introTag">NO SIGNAL · 未检测到心跳</p>
+    <p class="intro-visit" id="introVisit" hidden></p>
+    <svg class="intro-line" id="introLine" viewBox="0 0 720 120" aria-hidden="true">
+      <path class="il-flat" d="M0 70 L720 70"/>
+      <path class="il-ecg" id="introEcg" d=""/>
+    </svg>
+    <div class="intro-lines">
+      <p>「01 号床位。」</p>
+      <p>「没有病人。」</p>
+      <p>「只有一个来量心跳的天使。」</p>
+    </div>
+    <button class="btn-hand intro-btn" id="introBtn" type="button">接上导联 ▸</button>
+  </div>
+  <button class="intro-skip" id="introSkip" type="button">跳过 →</button>
+</div>
+
+<!-- ============ 固定导航 ============ -->
+<nav class="nav" id="nav" aria-label="章节">
+  <a href="#signal" data-sec="signal"><b>01</b><span>信号</span><svg class="nav-wave" viewBox="0 0 60 8" preserveAspectRatio="none" aria-hidden="true"><path d="M2 5 Q7 1 12 4.5 T22 4.5 T32 4 T42 5 T52 4 T58 4.5"/></svg></a>
+  <a href="#chart" data-sec="chart"><b>02</b><span>病历</span><svg class="nav-wave" viewBox="0 0 60 8" preserveAspectRatio="none" aria-hidden="true"><path d="M2 5 Q7 1 12 4.5 T22 4.5 T32 4 T42 5 T52 4 T58 4.5"/></svg></a>
+  <a href="#room" data-sec="room"><b>03</b><span>观察室</span><svg class="nav-wave" viewBox="0 0 60 8" preserveAspectRatio="none" aria-hidden="true"><path d="M2 5 Q7 1 12 4.5 T22 4.5 T32 4 T42 5 T52 4 T58 4.5"/></svg></a>
+  <a href="#beat" data-sec="beat"><b>04</b><span>节拍</span><svg class="nav-wave" viewBox="0 0 60 8" preserveAspectRatio="none" aria-hidden="true"><path d="M2 5 Q7 1 12 4.5 T22 4.5 T32 4 T42 5 T52 4 T58 4.5"/></svg></a>
+  <a href="#talk" data-sec="talk"><b>05</b><span>对话</span><svg class="nav-wave" viewBox="0 0 60 8" preserveAspectRatio="none" aria-hidden="true"><path d="M2 5 Q7 1 12 4.5 T22 4.5 T32 4 T42 5 T52 4 T58 4.5"/></svg></a>
+</nav>
+
+<!-- ============ HUD 小监护仪 ============ -->
+<div class="hud" id="hud" aria-label="心率监护">
+  <svg class="hud-heart" id="hudHeart" viewBox="0 0 32 30" aria-hidden="true"><use href="#i-heart"/></svg>
+  <span class="hud-bpm" id="hudBpm">60</span>
+  <span class="hud-unit">BPM</span>
+  <canvas class="hud-ecg" id="hudEcg" width="90" height="26" aria-hidden="true"></canvas>
+  <button class="hud-sound" id="soundBtn" type="button" aria-pressed="false" aria-label="白噪音开关" title="白噪音 · 心跳">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path class="sp-body" d="M4 9.5 H7.5 L12 5.5 V18.5 L7.5 14.5 H4 Z"/>
+      <path class="sp-wave" d="M15.5 9 Q17.5 12 15.5 15 M18 6.5 Q21.5 12 18 17.5"/>
+      <path class="sp-off" d="M15.5 9.5 L20.5 14.5 M20.5 9.5 L15.5 14.5"/>
+    </svg>
+  </button>
+</div>
+
+<main id="main">
+  <svg id="trail" aria-hidden="true">
+    <path class="tr-ghost" id="trailGhost" d=""/>
+    <path class="tr-line" id="trailLine" d=""/>
+    <circle class="tr-glow" id="trailGlow" r="10" cx="-40" cy="-40"/>
+    <circle class="tr-head" id="trailHead" r="3.6" cx="-40" cy="-40"/>
+  </svg>
+
+  <!-- ============ 01 信号 ============ -->
+  <section id="signal" class="sec sec-signal" data-bg="#fbfdff" data-fg="#4a4f5c">
+    <svg class="sig-01" id="sig01" viewBox="0 0 600 420" aria-hidden="true"><text x="300" y="350" text-anchor="middle">01</text></svg>
+    <div class="wrap sig-wrap">
+      <div class="sig-left" id="sigLeft">
+        <p class="sig-kicker">FILE No.01 — electrocardiogram angel</p>
+        <h1 class="sig-title">
+          <svg viewBox="0 0 420 230" role="img" aria-label="零一">
+            <path class="sig-halo" d="M150 40 C190 18 300 16 352 30 C392 41 384 58 330 64 C268 71 170 70 136 58 C110 49 118 36 150 30 M210 50 L224 50 L230 36 L238 62 L245 28 L252 50 L266 50"/>
+            <text x="4" y="200">零一</text>
+          </svg>
+        </h1>
+        <p class="sig-sub">ZERO ONE · 心电图天使</p>
+        <p class="sig-desc">头顶的光环，是一圈没画完的心电图。<br>心率常年 60，情绪常年平稳。<br>看起来在发呆——确实在发呆。</p>
+        <ul class="sig-tags">
+          <li>i 淡人</li><li>呆萌</li><li>话很少</li><li>社交电量 12%</li>
+        </ul>
+        <a class="btn-hand sig-cta" href="#chart">翻开他的病历 ↓</a>
+      </div>
+      <div class="sig-right">
+        <svg class="sig-flow" viewBox="0 0 1200 140" preserveAspectRatio="none" aria-hidden="true"><path id="sigFlow" d=""/></svg>
+        <div class="sig-fall" id="sigFall" aria-hidden="true"></div>
+        <button class="sig-chibi" id="sigChibi" type="button" aria-label="戳一下零一">
+          <span class="sig-chibi-in"><img src="assets/chibi.webp" alt="Q 版零一，拿着一张记录纸" width="682" height="1100"></span>
+        </button>
+        <div class="bubble" id="sigBubble" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+    <a class="scroll-hint" href="#chart" aria-label="向下滚动"><span>scroll</span><i>↓</i></a>
+  </section>
+
+  <!-- ============ 02 病历 ============ -->
+  <section id="chart" class="sec sec-chart" data-bg="#f3f8fe" data-fg="#4a4f5c">
+    <div class="wrap">
+      <header class="sec-head reveal">
+        <span class="sec-no">02</span>
+        <h2 class="sec-title" data-split>观察记录</h2>
+        <svg class="sec-ecg" viewBox="0 0 260 40" aria-hidden="true"><path d=""/></svg>
+        <p class="sec-kicker">Chapter 02 · observation chart</p>
+      </header>
+
+      <div class="chart-grid">
+        <div class="board reveal" style="--d:.1s">
+          <svg class="board-clip" viewBox="0 0 160 70" aria-hidden="true">
+            <path d="M28 40 H132 C138 40 140 44 138 50 L132 64 H28 L22 50 C20 44 22 40 28 40 Z" fill="#fff" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M58 40 C58 18 66 8 80 8 C94 8 102 18 102 40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="80" cy="22" r="5" fill="none" stroke="currentColor" stroke-width="2.6"/>
+            <path d="M40 52 H120" stroke="#cfe6fb" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <article class="sheet" id="sheet">
+            <p class="sheet-head"><span>PATIENT RECORD</span><span>No.01</span></p>
+            <dl class="fields">
+              <div><dt>姓名</dt><dd>零一 <small>Zero One</small></dd></div>
+              <div><dt>编号</dt><dd class="mono">No.01</dd></div>
+              <div><dt>种族</dt><dd>心电图天使</dd></div>
+              <div><dt>生日</dt><dd>1 月 1 日 <small>(01/01)</small></dd></div>
+              <div><dt>身高</dt><dd>172 cm <small>（含光环）</small></dd></div>
+              <div><dt>工作</dt><dd>记录心跳，<span class="tiny">字写得很小</span></dd></div>
+            </dl>
+            <div class="vitals">
+              <div class="vital"><span class="v-l">心率</span><b class="v-n">60</b><span class="v-u">BPM（恒定）</span></div>
+              <div class="vital"><span class="v-l">体温</span><b class="v-n">36.0</b><span class="v-u">℃</span></div>
+              <div class="vital"><span class="v-l">社交电量</span><b class="v-n">12%</b><span class="v-bar"><i></i></span></div>
+              <div class="vital"><span class="v-l">情绪波动</span><b class="v-n">±0.1</b><span class="v-u">&nbsp;</span></div>
+            </div>
+            <div class="lists">
+              <div class="list like"><h4>喜欢</h4><p>安静的角落、白噪音、蓝色的东西、整齐的波形、一个人待着、温牛奶</p></div>
+              <div class="list dislike"><h4>不喜欢</h4><p>突然被叫名字、人多的地方、警报声、需要立刻回复的消息</p></div>
+            </div>
+            <p class="catch"><span>口头禅</span>「……嗯。」「都行。」</p>
+            <p class="memo"><span>备注：</span>请勿大声喧哗。可以安静地待在他旁边。</p>
+            <div class="stamp sheet-stamp" aria-label="已观察 / 状态平稳"><b>已观察</b><i>状态平稳</i></div>
+          </article>
+        </div>
+
+        <div class="card atlas reveal" style="--d:.25s">
+          <h3 class="card-title">设定图鉴 <small>reference sheet</small></h3>
+          <div class="atlas-stage">
+            <div class="atlas-fig" id="atlasFig">
+              <img src="assets/full.webp" alt="零一站姿全身设定图" width="451" height="1100">
+            </div>
+          </div>
+          <div class="atlas-note" id="atlasNote" aria-live="polite"><b>—</b><span>点一点图上的小圆点。</span></div>
+          <div class="swatches" id="swatches"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 观察室 ============ -->
+  <section id="room" class="sec sec-room" data-bg="#eaf3fc" data-fg="#4a4f5c">
+    <div class="wrap">
+      <header class="sec-head reveal">
+        <span class="sec-no">03</span>
+        <h2 class="sec-title" data-split>01 号观察室</h2>
+        <svg class="sec-ecg" viewBox="0 0 260 40" aria-hidden="true"><path d=""/></svg>
+        <p class="sec-kicker">Chapter 03 · 他住在这里。可以轻轻地碰一碰东西。</p>
+      </header>
+      <div id="roomMount"></div>
+    </div>
+  </section>
+
+  <!-- ============ 04 节拍 ============ -->
+  <section id="beat" class="sec sec-beat" data-bg="#0f1a33" data-fg="#e8f1ff">
+    <div class="wrap">
+      <header class="sec-head reveal">
+        <span class="sec-no">04</span>
+        <h2 class="sec-title" data-split>心跳节拍</h2>
+        <svg class="sec-ecg" viewBox="0 0 260 40" aria-hidden="true"><path d=""/></svg>
+        <p class="sec-kicker">Chapter 04 · 帮他把今天的心跳记录下来</p>
+      </header>
+      <div id="gameMount"></div>
+    </div>
+  </section>
+
+  <!-- ============ 05 对话 ============ -->
+  <section id="talk" class="sec sec-talk" data-bg="#dfe6f7" data-fg="#4a4f5c">
+    <div class="wrap">
+      <header class="sec-head reveal">
+        <span class="sec-no">05</span>
+        <h2 class="sec-title" data-split>和零一说说话</h2>
+        <svg class="sec-ecg" viewBox="0 0 260 40" aria-hidden="true"><path d=""/></svg>
+        <p class="sec-kicker">Chapter 05 · 今日说话配额有限，请珍惜</p>
+      </header>
+
+      <div class="talk-grid">
+        <div class="talk-fig reveal" style="--d:.1s">
+          <img src="assets/full.webp" alt="零一站在那里" width="451" height="1100" loading="lazy">
+          <span class="talk-shadow" aria-hidden="true"></span>
+        </div>
+        <div class="talk-side reveal" style="--d:.2s">
+          <div class="dialog" id="dialog">
+            <span class="dialog-name">零一</span>
+            <div class="dialog-lines" id="talkLines" aria-live="polite"><p class="tl-him">……</p></div>
+          </div>
+          <p class="quota">今日说话配额 <b id="quota">8</b> / 8</p>
+          <div class="qs" id="talkQs"></div>
+        </div>
+      </div>
+
+      <div class="slip" id="slip" hidden>
+        <div class="slip-paper">
+          <span class="slip-meta">LEAD II · 25 mm/s · No.01</span>
+          <svg class="slip-ecg" id="slipEcg" viewBox="0 0 900 170" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d=""/></svg>
+          <p class="slip-note">……明天，还来吗。</p>
+          <button class="btn-hand slip-btn" id="slipBtn" type="button">嗯，还来</button>
+          <div class="stamp slip-stamp" id="slipStamp" aria-label="复诊预约 · 明天"><b>复诊预约</b><i>明天</i></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 页脚 ============ -->
+  <footer id="foot" class="sec sec-foot" data-bg="#fbfdff" data-fg="#4a4f5c">
+    <p class="foot-line">零一 · ZERO ONE — <span class="mono">signal ends here ▁▁▂▁▁</span></p>
+    <a class="foot-back" href="../">← 回到 OC 小宇宙</a>
+  </footer>
+</main>
+
+<!-- ============ 通用弹窗 / toast ============ -->
+<div class="modal" id="modal" aria-hidden="true">
+  <div class="modal-back" data-close></div>
+  <div class="modal-box" role="dialog" aria-modal="true">
+    <button class="modal-x" type="button" data-close aria-label="关闭">×</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="core.js"></script>
+<script src="room.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
