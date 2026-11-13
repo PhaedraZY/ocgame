@@ -45,6 +45,12 @@ function yardView(p, x0, y0, x1, y1, near = 1, night = false) {     // the front
 }
 function drawRoom(p, opt = {}) {
   const R = ROOM, night = !!opt.night;
+  const W0 = R.win, glass = [W0.x0 + 16, W0.y0 + 16, W0.x1 - W0.x0 - 32, W0.y1 - W0.y0 - 32];
+  const roomKey = Skin.pick(night ? ['room.night', 'room'] : ['room']);
+  if (roomKey) {     // a painted room: the yard shows through its transparent glass
+    Skin.part(p, night ? 'room.view.night' : 'room.view', () => yardView(p, glass[0], glass[1], glass[0] + glass[2], glass[1] + glass[3], 1, night), glass);
+    Skin.img(p, roomKey); return;
+  }
   // ---- ceiling (pitched) ----
   p.wash([[-10, -10], [1210, -10], [R.bx1, R.by0], [R.bx0, R.by0]], { color: '#e3c89f', blooms: 6, edge: 0, off: 0 });
   for (let i = 0; i <= 8; i++) { const t = i / 8, xb = lerp(R.bx0, R.bx1, t), xt = lerp(-160, 1360, t); p.ink([[xt, -10], [xb, R.by0]], { w: 1.2, color: '#c5a578' }); }
@@ -78,11 +84,13 @@ function drawRoom(p, opt = {}) {
   p.wash(S.rect(W.x0 + 6, W.y0 + 8, W.x1 - W.x0, W.y1 - W.y0), { color: '#7a6c66', alpha: .12, edge: 0, off: 0 });
   p.draw(S.rect(W.x0, W.y0, W.x1 - W.x0, W.y1 - W.y0, 6), { fill: '#f3e3c6', w: 2 });
   clipTo(p, [[g.x0, g.y0], [g.x1, g.y0], [g.x1, g.y1], [g.x0, g.y1]], () => {
+    Skin.part(p, night ? 'room.view.night' : 'room.view', () => {
     yardView(p, g.x0, g.y0, g.x1, g.y1, 1, night);
     // her old apple tree, close to the window, cut off by the frame
     p.draw(S.rect(g.x0 + 40, g.y0 + 120, 18, 160, 4), { fill: '#b59c80', w: 1.3, line: '#a39089' });
     for (const [x, y, r] of [[g.x0 + 20, g.y0 + 70, 60], [g.x0 + 92, g.y0 + 52, 58], [g.x0 + 56, g.y0 + 12, 52], [g.x0 + 130, g.y0 + 104, 34]]) p.draw(S.ell(x, y, r, r * .84), { fill: '#b6d585', w: 1.2, line: '#a39089' });
     for (let i = 0; i < 9; i++) p.dot(g.x0 + p.rand(0, 150), g.y0 + p.rand(10, 120), 4.4, '#e4f2a8', { line: '#a39089', w: .8 });
+    }, [g.x0, g.y0, g.x1 - g.x0, g.y1 - g.y0]);
     // glass sheen
     if (!opt.winOpen) { p.c.globalAlpha = .5; p.ink([[g.x0 + 170, g.y0 + 20], [g.x0 + 120, g.y0 + 110]], { w: 3, color: '#ffffff' }); p.ink([[g.x0 + 196, g.y0 + 20], [g.x0 + 160, g.y0 + 86]], { w: 2, color: '#ffffff' }); p.c.globalAlpha = 1; }
   });
@@ -114,7 +122,7 @@ function drawRoom(p, opt = {}) {
   p.draw(S.rect(D.x0 - 12, D.y0 - 14, D.x1 - D.x0 + 24, D.y1 - D.y0 + 14, 4), { fill: '#c9a77c', w: 1.8 });
   p.draw(S.rect(D.x0, D.y0, D.x1 - D.x0, D.y1 - D.y0, 3), { fill: '#d9bb8c', w: 1.8 });
   const dg = { x0: D.x0 + 18, y0: D.y0 + 18, x1: D.x1 - 18, y1: D.y0 + 132 };
-  clipTo(p, [[dg.x0, dg.y0], [dg.x1, dg.y0], [dg.x1, dg.y1], [dg.x0, dg.y1]], () => { yardView(p, dg.x0 - 40, dg.y0 - 20, dg.x1 + 40, dg.y1 + 60, .7, night); });
+  clipTo(p, [[dg.x0, dg.y0], [dg.x1, dg.y0], [dg.x1, dg.y1], [dg.x0, dg.y1]], () => { Skin.part(p, night ? 'room.view.night' : 'room.view', () => yardView(p, dg.x0 - 40, dg.y0 - 20, dg.x1 + 40, dg.y1 + 60, .7, night), [dg.x0 - 40, dg.y0 - 20, dg.x1 - dg.x0 + 80, dg.y1 - dg.y0 + 80]); });
   p.ink(S.rect(dg.x0, dg.y0, dg.x1 - dg.x0, dg.y1 - dg.y0, 2), { w: 1.4, closed: true });
   p.draw(S.rect((dg.x0 + dg.x1) / 2 - 4, dg.y0, 8, dg.y1 - dg.y0), { fill: '#d9bb8c', w: 1.1 });
   p.draw(S.rect(dg.x0, (dg.y0 + dg.y1) / 2 - 4, dg.x1 - dg.x0, 8), { fill: '#d9bb8c', w: 1.1 });
@@ -137,23 +145,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 /* ---------------- furniture ----------------
    zone: floor | wall | small (small things sit on the floor or on a surface)
    surf: a surface other things can sit on, in local coords (y from the item's top, x0..x1) */
-const ITEMS = {
-  basket:   { name: '旧篮子', w: 120, h: 62, zone: 'floor', price: 0, comfort: 2, soft: true, surf: { y: 18, x0: 24, x1: 96 }, line: '……以前，每天睡在这里。' },
-  bed:      { name: '青苹果小床', w: 270, h: 150, zone: 'floor', price: 260, comfort: 22, soft: true, surf: { y: 62, x0: 40, x1: 236 }, line: '……软的。比篮子软。' },
-  rug:      { name: '波点小地毯', w: 230, h: 44, zone: 'rug', price: 50, comfort: 6, soft: true, line: '可以在上面打滚。' },
-  desk:     { name: '小书桌', w: 176, h: 112, zone: 'floor', price: 220, comfort: 6, surf: { y: 2, x0: 10, x1: 166 }, line: '这里可以……练写字。' },
-  chair:    { name: '小木椅', w: 74, h: 116, zone: 'floor', price: 40, comfort: 3, line: '坐、坐上去了。' },
-  wardrobe: { name: '旧木衣柜', w: 150, h: 232, zone: 'floor', price: 240, comfort: 6, surf: { y: 2, x0: 14, x1: 136 }, line: '衣服……只有一件。\n现在有地方放了。' },
-  monstera: { name: '大叶子盆栽', w: 96, h: 156, zone: 'floor', price: 200, comfort: 6, line: '叶子比我的耳朵还大。' },
-  shelf:    { name: '墙上小架子', w: 170, h: 46, zone: 'wall', price: 45, comfort: 3, surf: { y: 16, x0: 8, x1: 162 }, line: '可以放小东西。' },
-  frame:    { name: '挂画：主人和我', w: 84, h: 100, zone: 'wall', price: 180, comfort: 7, line: '画的是……主人，\n和兔子时候的我。' },
-  clock:    { name: '兔耳挂钟', w: 74, h: 92, zone: 'wall', price: 200, comfort: 4, line: '滴答滴答。\n……耳朵跟着动。' },
-  lights:   { name: '星星串灯', w: 280, h: 46, zone: 'wall', price: 220, comfort: 7, line: '一闪一闪的。' },
-  plush:    { name: '兔子玩偶', w: 56, h: 64, zone: 'small', price: 50, comfort: 6, soft: true, line: '……和我长得有点像。' },
-  pillow:   { name: '青苹果抱枕', w: 60, h: 50, zone: 'small', price: 30, comfort: 5, soft: true, line: '抱着睡。' },
-  lamp:     { name: '蘑菇台灯', w: 52, h: 70, zone: 'small', price: 50, comfort: 5, line: '晚上，这里会亮。' },
-  clover:   { name: '三叶草小盆', w: 50, h: 58, zone: 'small', price: 20, comfort: 3, line: '……要每天浇水。' },
-};
+const ITEMS = JSON.parse(JSON.stringify(THEME.furniture.items));   // theme/furniture.json (copied: sizes get scaled below)
 
 
 // inside a wardrobe: dark back, a rail, her clothes on hangers (apron, polka blouse, dark skirt) and a hat on the shelf
@@ -301,34 +293,7 @@ const drawers = {
   },
 };
 /* ---------------- more furniture: 2–3 per category, cheap → fancy ---------------- */
-const CAT = { bed: '床', wardrobe: '衣柜', table: '桌子', seat: '椅凳', sofa: '沙发', plant: '盆栽和花', wallart: '挂画', light: '灯', rug: '地毯', deco: '墙饰和摆件' };
-Object.assign(ITEMS.basket, { cat: 'bed' }); Object.assign(ITEMS.bed, { cat: 'bed' }); Object.assign(ITEMS.wardrobe, { cat: 'wardrobe' });
-Object.assign(ITEMS.desk, { cat: 'table' }); Object.assign(ITEMS.chair, { cat: 'seat' }); Object.assign(ITEMS.monstera, { cat: 'plant' }); Object.assign(ITEMS.clover, { cat: 'plant' });
-Object.assign(ITEMS.frame, { cat: 'wallart' }); Object.assign(ITEMS.lights, { cat: 'light' }); Object.assign(ITEMS.lamp, { cat: 'light' }); Object.assign(ITEMS.rug, { cat: 'rug' });
-Object.assign(ITEMS.shelf, { cat: 'deco' }); Object.assign(ITEMS.clock, { cat: 'deco' }); Object.assign(ITEMS.plush, { cat: 'deco' }); Object.assign(ITEMS.pillow, { cat: 'deco' });
-Object.assign(ITEMS, {
-  mat:        { cat: 'bed', name: '稻草小床垫', w: 220, h: 62, zone: 'floor', price: 40, comfort: 10, soft: true, surf: { y: 26, x0: 24, x1: 196 }, line: '……比篮子大一点。' },
-  canopy:     { cat: 'bed', name: '云朵四柱床', w: 290, h: 252, zone: 'floor', price: 1600, comfort: 40, soft: true, surf: { y: 168, x0: 50, x1: 250 }, limit: 1, line: '……像睡在云里面。\n（耳朵都放松了）' },
-  rack:       { cat: 'wardrobe', name: '小挂衣架', w: 84, h: 194, zone: 'floor', price: 45, comfort: 3, line: '围裙，挂在这里。' },
-  fancyward:  { cat: 'wardrobe', name: '雕花兔耳衣柜', w: 172, h: 262, zone: 'floor', price: 1200, comfort: 14, surf: { y: 40, x0: 18, x1: 154 }, limit: 1, line: '镜子里……有一只兔子。\n啊，是我。' },
-  crate:      { cat: 'table', name: '苹果箱小桌', w: 104, h: 74, zone: 'floor', price: 25, comfort: 2, surf: { y: 4, x0: 6, x1: 98 }, line: '以前装苹果的箱子。' },
-  vanity:     { cat: 'table', name: '梳妆台', w: 184, h: 214, zone: 'floor', price: 1000, comfort: 12, surf: { y: 112, x0: 12, x1: 172 }, limit: 1, line: '……发箍，要戴正。' },
-  stump:      { cat: 'seat', name: '树桩小凳', w: 64, h: 58, zone: 'floor', price: 15, comfort: 2, surf: { y: 6, x0: 10, x1: 54 }, line: '苹果园里捡来的。' },
-  rocker:     { cat: 'seat', name: '藤编摇椅', w: 126, h: 152, zone: 'floor', price: 520, comfort: 12, line: '摇啊摇……\n要睡着了。' },
-  cushions:   { cat: 'sofa', name: '软坐垫堆', w: 116, h: 58, zone: 'floor', price: 60, comfort: 6, soft: true, line: '一屁股坐下去。' },
-  sofa:       { cat: 'sofa', name: '小布艺沙发', w: 206, h: 112, zone: 'floor', price: 320, comfort: 14, soft: true, surf: { y: 54, x0: 34, x1: 172 }, limit: 1, line: '可以请客人坐了。' },
-  velvet:     { cat: 'sofa', name: '兔耳天鹅绒沙发', w: 246, h: 158, zone: 'floor', price: 1500, comfort: 26, soft: true, surf: { y: 92, x0: 40, x1: 206 }, limit: 1, line: '……软得陷进去了。\n像被耳朵抱住。' },
-  tulip:      { cat: 'plant', name: '郁金香花盆', w: 52, h: 74, zone: 'small', price: 45, comfort: 4, line: '粉色的，像耳朵里面。' },
-  hydrangea:  { cat: 'plant', name: '绣球花架', w: 116, h: 176, zone: 'floor', price: 600, comfort: 12, line: '蓝色的、粉色的……\n一团一团。' },
-  doodle:     { cat: 'wallart', name: '手绘涂鸦', w: 72, h: 66, zone: 'wall', price: 20, comfort: 2, line: '是我画的……\n（是兔子。真的是兔子。）' },
-  oil:        { cat: 'wallart', name: '金框油画·苹果园', w: 168, h: 128, zone: 'wall', price: 900, comfort: 14, line: '傍晚的苹果园。\n……我出生的地方。' },
-  flowerlights: { cat: 'light', name: '花朵灯串', w: 300, h: 60, zone: 'wall', price: 360, comfort: 9, line: '每一朵，都会亮。' },
-  floorlamp:  { cat: 'light', name: '流苏落地灯', w: 84, h: 222, zone: 'floor', price: 480, comfort: 9, line: '流苏，会跟着晃。' },
-  strawrug:   { cat: 'rug', name: '草编圆地毯', w: 212, h: 46, zone: 'rug', price: 180, comfort: 6, line: '有太阳的味道。' },
-  bunnyrug:   { cat: 'rug', name: '兔子绒毯', w: 266, h: 66, zone: 'rug', price: 950, comfort: 14, soft: true, line: '……是兔子的形状！' },
-  wreath:     { cat: 'deco', name: '干花环', w: 92, h: 98, zone: 'wall', price: 200, comfort: 5, line: '花干了，也还是香的。' },
-  musicbox:   { cat: 'deco', name: '旋转木马音乐盒', w: 66, h: 84, zone: 'small', price: 420, comfort: 8, line: '转起来了……\n（叮叮咚咚）' },
-});
+const CAT = THEME.furniture.categories;
 
 const PINK_V = '#f2b3c4', MINT = '#d7ead6', GOLDL = '#efd28c';
 const shadow = (p, cx, y, rx) => p.wash(S.ell(cx, y, rx, 5), { color: '#7a6c66', alpha: .12, edge: 0, off: 0 });
@@ -633,9 +598,24 @@ Object.assign(drawers, {
   },
 });
 
-const SC = 1.2;   // furniture drawn at 1.2× so the room feels lived-in next to her
+const SC = THEME.furniture.scale || 1;   // furniture drawn bigger so the room feels lived-in next to her
 for (const d of Object.values(ITEMS)) { d.w = Math.round(d.w * SC); d.h = Math.round(d.h * SC); if (d.surf) d.surf = { y: d.surf.y * SC, x0: d.surf.x0 * SC, x1: d.surf.x1 * SC }; }
-function drawItem(p, id, st) { p.c.save(); p.c.scale(SC, SC); drawers[id](p, st || {}); p.c.restore(); }
+function drawItem(p, id, st = {}) {
+  const d = ITEMS[id], k = Skin.pick([st.open && `item.${id}.open`, st.on && `item.${id}.on`, `item.${id}`].filter(Boolean));
+  if (k && Skin.img(p, k, [0, 0, d.w, d.h])) return;
+  if (!drawers[id]) { p.draw(S.rect(4, 4, d.w - 8, d.h - 8, 8), { fill: '#fbf8f0', w: 1.4 }); return; }   // a theme-only item with no picture yet
+  p.c.save(); p.c.scale(SC, SC); drawers[id](p, st); p.c.restore();
+}
+/* replaceable elements: the room, the yard view, every piece of furniture (theme/README.md) */
+Skin.add('room', '小屋整个房间（窗户玻璃要透明，能看到窗外风景）', '小屋', [0, 0, 1200, 720], { fit: 'stretch', kind: 'scene', draw: p => drawRoom(p, {}) });
+Skin.add('room.night', '小屋整个房间 · 夜晚（可选）', '小屋', [0, 0, 1200, 720], { fit: 'stretch', kind: 'scene', draw: p => drawRoom(p, { night: true }) });
+Skin.add('room.view', '小屋窗外风景（白天）', '小屋', [ROOM.win.x0 + 16, ROOM.win.y0 + 16, ROOM.win.x1 - ROOM.win.x0 - 32, ROOM.win.y1 - ROOM.win.y0 - 32], { fit: 'stretch', draw: p => drawRoom(p, {}) });
+Skin.add('room.view.night', '小屋窗外风景（夜晚）', '小屋', [ROOM.win.x0 + 16, ROOM.win.y0 + 16, ROOM.win.x1 - ROOM.win.x0 - 32, ROOM.win.y1 - ROOM.win.y0 - 32], { fit: 'stretch', draw: p => drawRoom(p, { night: true }) });
+for (const [id, d] of Object.entries(ITEMS)) {
+  const g = '家具：' + (CAT[d.cat] || '其他');
+  Skin.add('item.' + id, d.name, g, [0, 0, d.w, d.h], { draw: p => drawItem(p, id), kind: d.w > 160 || d.h > 160 ? 'large' : 'small' });
+  if (id === 'wardrobe' || id === 'fancyward') Skin.add(`item.${id}.open`, d.name + '（开门）', g, [0, 0, d.w, d.h], { draw: p => drawItem(p, id, { open: true }), kind: 'large' });
+}
 
 return { drawRoom, drawItem, ITEMS, ROOM, CAT };
 })();

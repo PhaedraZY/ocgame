@@ -1,0 +1,791 @@
+{
+  "_说明": "厨房：物品（items）和设备（stations）。设备类型：source 拿原料 / bench 放料+连点（碗、砧板）/ cooker 计时会糊、可翻面、可多格（锅、蒸笼、冰箱、平底锅）/ plates 出餐盘 / topping 加料 / bell 出餐铃。坐标都是店面逻辑坐标（1200×720）。规则 rules：need 放进去的东西 → makes 做出来的东西 → to 送去哪个设备（plates = 盘子）。",
+  "items": {
+    "egg": {
+      "name": "鸡蛋",
+      "cost": 1
+    },
+    "milk": {
+      "name": "牛奶",
+      "cost": 1
+    },
+    "sugar": {
+      "name": "糖",
+      "cost": 1
+    },
+    "flour": {
+      "name": "面粉",
+      "cost": 1
+    },
+    "apple": {
+      "name": "青苹果",
+      "cost": 1
+    },
+    "gel": {
+      "name": "吉利丁",
+      "cost": 1
+    },
+    "pine": {
+      "name": "菠萝片",
+      "cost": 1
+    },
+    "bun": {
+      "name": "面包",
+      "cost": 1,
+      "carry": "bunB"
+    },
+    "lettuce": {
+      "name": "生菜",
+      "cost": 1
+    },
+    "custard": {
+      "name": "布丁液",
+      "carry": "batter"
+    },
+    "batter": {
+      "name": "松饼面糊",
+      "carry": "batter"
+    },
+    "chopped": {
+      "name": "切好的青苹果",
+      "carry": "chopped"
+    },
+    "jellyMix": {
+      "name": "果冻液",
+      "carry": "mold"
+    },
+    "pudding": {
+      "name": "牛奶布丁"
+    },
+    "jelly": {
+      "name": "青苹果果冻"
+    },
+    "friedEgg": {
+      "name": "煎蛋",
+      "carry": "eggC"
+    },
+    "friedPine": {
+      "name": "煎菠萝",
+      "carry": "pineC"
+    },
+    "pancake": {
+      "name": "松饼",
+      "carry": "cakeC"
+    },
+    "caramel": {
+      "name": "焦糖",
+      "cost": 0
+    },
+    "chocoSauce": {
+      "name": "巧克力酱",
+      "cost": 0,
+      "carry": "chocoB"
+    },
+    "lime": {
+      "name": "青柠",
+      "cost": 1
+    },
+    "limeSlice": {
+      "name": "青柠片",
+      "carry": "limeSlice"
+    },
+    "iceCup": {
+      "name": "一杯冰",
+      "cost": 1,
+      "carry": "cup"
+    },
+    "soda": {
+      "name": "苏打水",
+      "cost": 0
+    }
+  },
+  "stations": [
+    {
+      "id": "egg",
+      "type": "source",
+      "name": "鸡蛋",
+      "item": "egg",
+      "to": "bowl",
+      "spot": [
+        44,
+        76,
+        80,
+        50
+      ],
+      "x": 84
+    },
+    {
+      "id": "milk",
+      "type": "source",
+      "name": "牛奶",
+      "item": "milk",
+      "to": "bowl",
+      "spot": [
+        126,
+        62,
+        58,
+        62
+      ],
+      "x": 154
+    },
+    {
+      "id": "sugar",
+      "type": "source",
+      "name": "糖",
+      "item": "sugar",
+      "to": "bowl",
+      "spot": [
+        186,
+        72,
+        54,
+        52
+      ],
+      "x": 212
+    },
+    {
+      "id": "apple",
+      "type": "source",
+      "name": "青苹果",
+      "item": "apple",
+      "to": "board",
+      "spot": [
+        38,
+        138,
+        96,
+        60
+      ],
+      "x": 90
+    },
+    {
+      "id": "gel",
+      "type": "source",
+      "name": "吉利丁",
+      "item": "gel",
+      "to": "stove",
+      "spot": [
+        144,
+        144,
+        76,
+        54
+      ],
+      "x": 178
+    },
+    {
+      "id": "flour",
+      "type": "source",
+      "name": "面粉",
+      "item": "flour",
+      "to": "bowl",
+      "need": "choco",
+      "spot": [
+        240,
+        72,
+        40,
+        52
+      ],
+      "x": 260
+    },
+    {
+      "id": "pine",
+      "type": "source",
+      "name": "菠萝罐",
+      "item": "pine",
+      "to": "griddle",
+      "need": "burger",
+      "spot": [
+        598,
+        202,
+        42,
+        48
+      ],
+      "x": 619,
+      "pad": "菠萝片"
+    },
+    {
+      "id": "eggF",
+      "type": "source",
+      "name": "煎蛋用的鸡蛋",
+      "item": "egg",
+      "to": "griddle",
+      "need": "burger",
+      "spot": [
+        598,
+        262,
+        42,
+        40
+      ],
+      "x": 619,
+      "pad": "煎蛋"
+    },
+    {
+      "id": "bread",
+      "type": "source",
+      "name": "面包篮",
+      "item": "bun",
+      "to": "plates",
+      "need": "burger",
+      "spot": [
+        566,
+        372,
+        54,
+        44
+      ],
+      "x": 594
+    },
+    {
+      "id": "lettuce",
+      "type": "source",
+      "name": "生菜碗",
+      "item": "lettuce",
+      "to": "plates",
+      "need": "burger",
+      "spot": [
+        622,
+        380,
+        46,
+        36
+      ],
+      "x": 644
+    },
+    {
+      "id": "ice",
+      "type": "source",
+      "name": "冰桶",
+      "pad": "冰杯",
+      "item": "iceCup",
+      "to": "plates",
+      "need": "lime",
+      "spot": [
+        798,
+        284,
+        56,
+        42
+      ],
+      "x": 820
+    },
+    {
+      "id": "limes",
+      "type": "source",
+      "name": "青柠筐",
+      "pad": "青柠",
+      "item": "lime",
+      "to": "board",
+      "need": "lime",
+      "spot": [
+        850,
+        290,
+        36,
+        38
+      ],
+      "x": 866
+    },
+    {
+      "id": "bowl",
+      "type": "bench",
+      "name": "搅拌碗",
+      "tap": "搅",
+      "sfx": "stir",
+      "draw": "bowl",
+      "icon": "batter",
+      "spot": [
+        104,
+        360,
+        112,
+        60
+      ],
+      "x": 160,
+      "box": [
+        104,
+        334,
+        112,
+        86
+      ],
+      "clear": [
+        200,
+        352
+      ],
+      "rules": [
+        {
+          "need": [
+            "egg",
+            "milk",
+            "sugar"
+          ],
+          "makes": "custard",
+          "taps": 3,
+          "to": "steamer",
+          "say": {
+            "made": "搅匀了！"
+          }
+        },
+        {
+          "need": [
+            "egg",
+            "milk",
+            "flour"
+          ],
+          "makes": "batter",
+          "taps": 3,
+          "to": "griddle",
+          "need_dish": "choco",
+          "say": {
+            "made": "面糊搅好了！"
+          }
+        }
+      ]
+    },
+    {
+      "id": "board",
+      "type": "bench",
+      "name": "砧板",
+      "tap": "切",
+      "sfx": "chop",
+      "draw": "board",
+      "icon": "chopped",
+      "spot": [
+        212,
+        380,
+        140,
+        36
+      ],
+      "x": 270,
+      "box": [
+        212,
+        356,
+        124,
+        56
+      ],
+      "clear": [
+        334,
+        376
+      ],
+      "rules": [
+        {
+          "need": [
+            "apple"
+          ],
+          "makes": "chopped",
+          "taps": 3,
+          "to": "stove"
+        },
+        {
+          "need": [
+            "lime"
+          ],
+          "makes": "limeSlice",
+          "taps": 2,
+          "to": "plates",
+          "need_dish": "lime"
+        }
+      ],
+      "put": "放到砧板上"
+    },
+    {
+      "id": "stove",
+      "type": "cooker",
+      "name": "小锅",
+      "verb": "煮",
+      "draw": "stove",
+      "back": true,
+      "icon": "mold",
+      "spot": [
+        30,
+        232,
+        136,
+        74
+      ],
+      "x": 100,
+      "box": [
+        30,
+        186,
+        136,
+        120
+      ],
+      "clear": [
+        150,
+        238
+      ],
+      "ring": [
+        124,
+        222
+      ],
+      "puff": [
+        96,
+        226
+      ],
+      "rules": [
+        {
+          "need": [
+            "chopped",
+            "gel"
+          ],
+          "makes": "jellyMix",
+          "cook": 5,
+          "burn": 8,
+          "to": "fridge",
+          "say": {
+            "start": "煮、煮上了。",
+            "done": "锅里的……好了！",
+            "burnt": "焦了！！",
+            "dump": "……倒掉了。（耳朵耷拉）"
+          }
+        }
+      ]
+    },
+    {
+      "id": "steamer",
+      "type": "cooker",
+      "name": "蒸笼",
+      "verb": "蒸",
+      "draw": "steamer",
+      "back": true,
+      "spot": [
+        168,
+        192,
+        122,
+        112
+      ],
+      "x": 228,
+      "box": [
+        166,
+        168,
+        124,
+        138
+      ],
+      "ring": [
+        276,
+        184
+      ],
+      "puff": [
+        228,
+        190
+      ],
+      "rules": [
+        {
+          "need": [
+            "custard"
+          ],
+          "makes": "pudding",
+          "cook": 6,
+          "burn": 8,
+          "to": "plates",
+          "sfx": "pour",
+          "say": {
+            "start": "蒸、蒸上了。",
+            "done": "布丁蒸好了！",
+            "burnt": "蒸、蒸老了！",
+            "dump": "蒸老了……倒掉。"
+          }
+        }
+      ],
+      "put": "倒进蒸笼"
+    },
+    {
+      "id": "fridge",
+      "type": "cooker",
+      "name": "冰箱",
+      "verb": "冷藏",
+      "draw": "magnet",
+      "back": true,
+      "slots": 2,
+      "sfx": "fridge",
+      "icon": "jelly",
+      "spot": [
+        652,
+        150,
+        136,
+        182
+      ],
+      "x": 715,
+      "slotBoxes": [
+        [
+          656,
+          284,
+          50,
+          54
+        ],
+        [
+          710,
+          284,
+          50,
+          54
+        ]
+      ],
+      "rings": [
+        [
+          700,
+          290
+        ],
+        [
+          754,
+          290
+        ]
+      ],
+      "rules": [
+        {
+          "need": [
+            "jellyMix"
+          ],
+          "makes": "jelly",
+          "cook": 8,
+          "to": "plates",
+          "say": {
+            "start": "放进冰箱。\n等它凝固。",
+            "done": ""
+          }
+        }
+      ]
+    },
+    {
+      "id": "griddle",
+      "type": "cooker",
+      "name": "平底锅",
+      "verb": "煎",
+      "draw": "griddle",
+      "slots": 2,
+      "need": "burger",
+      "icon": "eggC",
+      "box": [
+        752,
+        350,
+        120,
+        70
+      ],
+      "slotSpots": [
+        [
+          756,
+          372,
+          54,
+          46
+        ],
+        [
+          810,
+          372,
+          56,
+          46
+        ]
+      ],
+      "xs": [
+        787,
+        837
+      ],
+      "rings": [
+        [
+          787,
+          360
+        ],
+        [
+          837,
+          360
+        ]
+      ],
+      "puffs": [
+        [
+          787,
+          372
+        ],
+        [
+          837,
+          372
+        ]
+      ],
+      "rules": [
+        {
+          "need": [
+            "egg"
+          ],
+          "makes": "friedEgg",
+          "cook": 4,
+          "burn": 6,
+          "to": "plates",
+          "sfx": "sizzle",
+          "say": {
+            "start": "煎、煎蛋。",
+            "done": "蛋煎好了！",
+            "burnt": "煎、煎糊了！",
+            "dump": "煎糊了……倒掉。"
+          }
+        },
+        {
+          "need": [
+            "pine"
+          ],
+          "makes": "friedPine",
+          "cook": 4,
+          "burn": 6,
+          "to": "plates",
+          "sfx": "sizzle",
+          "say": {
+            "start": "菠萝片，滋——",
+            "done": "菠萝煎好了！",
+            "burnt": "煎、煎糊了！",
+            "dump": "煎糊了……倒掉。"
+          }
+        },
+        {
+          "need": [
+            "batter"
+          ],
+          "makes": "pancake",
+          "cook": 3,
+          "flip": 4,
+          "cook2": 3,
+          "burn": 5,
+          "to": "plates",
+          "need_dish": "choco",
+          "sfx": "pour",
+          "say": {
+            "start": "松饼煎上了。\n冒泡了要翻面！",
+            "flip": "冒泡了！\n该翻面了！",
+            "done": "松饼煎好了！",
+            "burnt": "没翻面……糊了！",
+            "dump": "煎糊了……倒掉。"
+          }
+        }
+      ],
+      "put": "放到平底锅上煎"
+    },
+    {
+      "id": "plates",
+      "type": "plates",
+      "name": "盘子",
+      "slots": 3,
+      "spots": [
+        [
+          359,
+          356,
+          66,
+          60
+        ],
+        [
+          425,
+          356,
+          66,
+          60
+        ],
+        [
+          491,
+          356,
+          66,
+          60
+        ]
+      ],
+      "xs": [
+        392,
+        458,
+        524
+      ],
+      "boxes": [
+        [
+          352,
+          334,
+          80,
+          80
+        ],
+        [
+          418,
+          334,
+          80,
+          80
+        ],
+        [
+          484,
+          334,
+          80,
+          80
+        ]
+      ],
+      "clears": [
+        [
+          420,
+          358
+        ],
+        [
+          486,
+          358
+        ],
+        [
+          552,
+          358
+        ]
+      ]
+    },
+    {
+      "id": "soda",
+      "type": "fill",
+      "name": "苏打水龙头",
+      "pad": "苏打",
+      "item": "soda",
+      "need": "lime",
+      "draw": "sodaCup",
+      "back": false,
+      "spot": [
+        882,
+        222,
+        54,
+        106
+      ],
+      "x": 906,
+      "box": [
+        962,
+        200,
+        54,
+        70
+      ],
+      "gauge": [
+        1026,
+        202,
+        0,
+        66
+      ],
+      "rate": 0.42,
+      "band": [
+        0.72,
+        0.92
+      ],
+      "say": {
+        "done": "刚刚好！",
+        "overflow": "啊……溢、溢出来了！"
+      }
+    },
+    {
+      "id": "caramel",
+      "type": "topping",
+      "name": "焦糖",
+      "item": "caramel",
+      "spot": [
+        670,
+        334,
+        40,
+        84
+      ],
+      "x": 690
+    },
+    {
+      "id": "choco",
+      "type": "topping",
+      "name": "巧克力酱",
+      "item": "chocoSauce",
+      "need": "choco",
+      "spot": [
+        711,
+        334,
+        38,
+        84
+      ],
+      "x": 730
+    },
+    {
+      "id": "bell",
+      "type": "bell",
+      "name": "出餐铃（空格）",
+      "spot": [
+        1154,
+        196,
+        46,
+        108
+      ],
+      "x": 856
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+[
+  {
+    "id": "pudding",
+    "name": "牛奶布丁",
+    "day": 1,
+    "price": 6,
+    "ready": true,
+    "base": "pudding",
+    "toppings": [
+      "caramel"
+    ]
+  },
+  {
+    "id": "jelly",
+    "name": "青苹果果冻",
+    "day": 1,
+    "price": 7,
+    "ready": true,
+    "base": "jelly"
+  },
+  {
+    "id": "burger",
+    "name": "菠萝鸡蛋堡",
+    "day": 3,
+    "price": 12,
+    "ready": true,
+    "pat": 1.35,
+    "stack": [
+      "bun",
+      "lettuce",
+      "friedPine",
+      "friedEgg",
+      "bun"
+    ]
+  },
+  {
+    "id": "choco",
+    "name": "巧克力松饼",
+    "day": 5,
+    "price": 9,
+    "ready": true,
+    "pat": 1.15,
+    "base": "pancake",
+    "toppings": [
+      "chocoSauce"
+    ]
+  },
+  {
+    "id": "lime",
+    "name": "青柠气泡水",
+    "day": 7,
+    "price": 8,
+    "ready": true,
+    "pat": 1.1,
+    "base": "iceCup",
+    "toppings": [
+      "limeSlice",
+      "soda"
+    ],
+    "melt": 20
+  },
+  {
+    "id": "mistsoda",
+    "name": "雾蓝苏打",
+    "day": 9,
+    "price": 7
+  },
+  {
+    "id": "carrot",
+    "name": "胡萝卜苹果汁",
+    "day": 11,
+    "price": 8
+  },
+  {
+    "id": "berry",
+    "name": "草莓牛奶",
+    "day": 13,
+    "price": 9
+  },
+  {
+    "id": "sandwich",
+    "name": "水果三明治",
+    "day": 15,
+    "price": 12
+  },
+  {
+    "id": "pie",
+    "name": "青苹果派",
+    "day": 19,
+    "price": 20
+  }
+]

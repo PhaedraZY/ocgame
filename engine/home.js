@@ -1,4 +1,4 @@
-/* home.js — 果冻的小屋 · 布置玩法（第 1 步）
+/* home.js — 小屋 · 布置玩法（所有 OC 共用；家具和文字在主题包里）
    收纳箱 → 拖进房间 → 自由摆放 + 轻吸附（地板 / 墙面 / 桌面、架子、床、窗台）→ 前后按位置自动排。
    选中后可以翻转、往前 / 往后、收回。硬币和小店共用（window.GD）。 */
 const Home = (() => {
@@ -12,7 +12,8 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const pct = (v, t) => (v / t * 100) + '%';
 
 /* ---------------- save ---------------- */
-const KEY = 'guodong.home.v1';
+const KEY = THEME.save.home, STORY = THEME.text.story || {};
+const V = (k, d) => (THEME.text.voice && THEME.text.voice[k] != null) ? THEME.text.voice[k] : d;
 const fresh = () => ({ owned: { basket: 1 }, placed: [{ uid: 1, id: 'basket', x: 170, y: 692, flip: false, bias: 0, parent: null }], uid: 2, intro: false, bed: false, met: ['basket'] });
 let hs = (() => { try { return Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY)) || {}); } catch (_) { return fresh(); } })();
 const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(hs)); } catch (_) {} };
@@ -162,13 +163,13 @@ function endDrag() {
   const res = dg.res;
   if (dg.fromBox) {
     dg.cv.remove();
-    if (!res || !res.valid) { say('……放不在那里。', 1200); return; }
+    if (!res || !res.valid) { say(V('home01', '……放不在那里。'), 1200); return; }
     const pl = { uid: hs.uid++, id: dg.id, x: res.x, y: res.y, flip: false, bias: 0, parent: res.parent };
     hs.placed.push(pl); persist(); layout(); landed(pl); meet(pl);
     return;
   }
   const pl = byUid(dg.uid);
-  if (!res || !res.valid) { layout(); say('……放不在那里。', 1200); return; }
+  if (!res || !res.valid) { layout(); say(V('home02', '……放不在那里。'), 1200); return; }
   const dx = res.x - pl.x, dy = res.y - pl.y;
   pl.x = res.x; pl.y = res.y; pl.parent = res.parent;
   for (const k of dg.kids) { k.pl.x += dx; k.pl.y += dy; }
@@ -202,7 +203,7 @@ selbar.addEventListener('click', e => {
   if (a === 'flip') { pl.flip = !pl.flip; for (const k of descendants(pl.uid)) if (k !== pl.uid) { const c = byUid(k); c.x = pl.x - (c.x - pl.x); } landed(pl); }
   if (a === 'front') pl.bias = (pl.bias || 0) + 8;
   if (a === 'back') pl.bias = (pl.bias || 0) - 8;
-  if (a === 'store') { for (const u of descendants(pl.uid)) hs.placed = hs.placed.filter(p => p.uid !== u); select(null); say('收进箱子里了。', 1000); }
+  if (a === 'store') { for (const u of descendants(pl.uid)) hs.placed = hs.placed.filter(p => p.uid !== u); select(null); say(V('home03', '收进箱子里了。'), 1000); }
   persist(); layout();
 });
 room.addEventListener('pointerdown', e => { if (e.target === roomCv || e.target === room || e.target === itemsEl) select(null); });
@@ -325,15 +326,16 @@ function meet(pl) {
   setTimeout(() => { say(IT[pl.id].line, 2600); squish(2.5); G.busy = false; G.wander = 4; }, 1300);
 }
 function bedStory(pl) {
+  const B = STORY.bed;
   hs.bed = true; persist();
   G.busy = true; walkTo(pl.x - 40);
   const T = [
-    [1200, () => say('……这个，是床？', 1800)],
+    [1200, () => say(B.lines[0], 1800)],
     [3000, () => { const s = surfOf(pl); G.sitOn = pl.uid; G.ty = s.y + 28; G.tx = pl.x - (pl.flip ? -30 : 30); squish(3); layout(); }],
-    [3800, () => say('……软的。\n比篮子软。', 2200)],
-    [6300, () => say('今天晚上……\n可以睡在这里吗？', 2400)],
-    [8800, () => { showNote('主人的便签', '当然可以。<br>篮子留着放抱枕吧。<br><small>—— 主人</small>'); G.vl -= 260; G.vr += 260; }],
-    [11500, () => { G.sitOn = null; G.ty = 706; G.tx = pl.x + 170 > 1100 ? pl.x - 180 : pl.x + 170; squish(3); layout(); say('……嗯！', 1400); }],
+    [3800, () => say(B.lines[1], 2200)],
+    [6300, () => say(B.lines[2], 2400)],
+    [8800, () => { showNote(B.noteTitle, B.note); G.vl -= 260; G.vr += 260; }],
+    [11500, () => { G.sitOn = null; G.ty = 706; G.tx = pl.x + 170 > 1100 ? pl.x - 180 : pl.x + 170; squish(3); layout(); say(B.lines[3], 1400); }],
     [12800, () => { G.busy = false; G.wander = 5; }],
   ];
   for (const [t, f] of T) setTimeout(f, t);
@@ -373,28 +375,28 @@ function goDo(x, fn) { G.busy = true; G.sitOn = null; walkTo(x); G.after = () =>
 function interact(pl) {
   if (!pl) return;
   const id = pl.id, d = IT[id], s = SFX();
-  if (LIGHTS[id]) { pl.on = pl.on === false; persist(); s.tick && s.tick(); renderGlows(pl.uid); if (pl.on === false) say('关灯。', 900); return; }
+  if (LIGHTS[id]) { pl.on = pl.on === false; persist(); s.tick && s.tick(); renderGlows(pl.uid); if (pl.on === false) say(V('home04', '关灯。'), 900); return; }
   if (id === 'musicbox') return windMusicBox(pl);
   if (id === 'clock') { s.ding && s.ding(); anim(pl, 'swing'); paintItem(itemCanvas.get(pl.uid), id, pl.uid, pl); const t = new Date(); say(`……${t.getHours()} 点 ${t.getMinutes()} 分。`, 1600); return; }
-  if (id === 'wardrobe' || id === 'fancyward') { pl.open = !pl.open; persist(); s.tick && s.tick(); paintItem(itemCanvas.get(pl.uid), id, pl.uid, pl); anim(pl, 'thud'); if (pl.open) say(pick(['衣服……只有这几件。', '围裙、波点衣服、裙子。', '（把裙子拉平）']), 1800); return; }
+  if (id === 'wardrobe' || id === 'fancyward') { pl.open = !pl.open; persist(); s.tick && s.tick(); paintItem(itemCanvas.get(pl.uid), id, pl.uid, pl); anim(pl, 'thud'); if (pl.open) say(pick(THEME.text.lines.wardrobe), 1800); return; }
   if (id === 'rocker') { anim(pl, 'rock'); s.pop && s.pop(); return; }
   if (BEDS.has(id)) return nap(pl);
   if (SOFT.has(id)) { anim(pl, 'squish'); s.pop && s.pop(); return; }
   if (HANG.has(id)) { anim(pl, 'swing'); return; }
   if (PLANTS.has(id)) return water(pl);
-  if (id === 'vanity') return goDo(pl.x, () => { say('……发箍，要戴正。', 2000); G.vl -= 240; G.vr += 240; sparkle(pl.x, pl.y - d.h * .8); });
-  if (id === 'desk' || id === 'crate') return goDo(pl.x + 40, () => { say(pick(['练习写字……「果冻」。', '今天的练习册，写好了。', '「明天」……怎么写来着。']), 2200); });
-  if (id === 'chair' || id === 'stump') return goDo(pl.x, () => { say('坐一会儿。', 1400); squish(2); });
+  if (id === 'vanity') return goDo(pl.x, () => { say(V('home05', '……发箍，要戴正。'), 2000); G.vl -= 240; G.vr += 240; sparkle(pl.x, pl.y - d.h * .8); });
+  if (id === 'desk' || id === 'crate') return goDo(pl.x + 40, () => { say(pick(THEME.text.lines.desk), 2200); });
+  if (id === 'chair' || id === 'stump') return goDo(pl.x, () => { say(V('home06', '坐一会儿。'), 1400); squish(2); });
   anim(pl, 'thud');
 }
 let napT = 0;
 function nap(pl) {
-  if (G.sitOn === pl.uid) { G.sitOn = null; G.ty = 706; squish(3); say('……醒了。', 1200); clearInterval(napT); G.busy = false; layout(); return; }
+  if (G.sitOn === pl.uid) { G.sitOn = null; G.ty = 706; squish(3); say(V('home07', '……醒了。'), 1200); clearInterval(napT); G.busy = false; layout(); return; }
   goDo(pl.x - 20, () => {
     const s = surfOf(pl); if (!s) return;
     G.sitOn = pl.uid; G.ty = s.y + 30; squish(3); layout(); G.busy = true;
-    say('……Zzz', 2000); clearInterval(napT);
-    napT = setInterval(() => { if (G.sitOn !== pl.uid) { clearInterval(napT); return; } say(pick(['……Zzz', '……苹果……（梦话）', 'Zzz……'])); }, 4200);
+    say(V('home08', '……Zzz'), 2000); clearInterval(napT);
+    napT = setInterval(() => { if (G.sitOn !== pl.uid) { clearInterval(napT); return; } say(pick(THEME.text.lines.nap)); }, 4200);
   });
 }
 function windMusicBox(pl) {
@@ -403,10 +405,10 @@ function windMusicBox(pl) {
   const playing = box.toggle(() => { for (const sp of spinning.values()) sp.stopping = true; });
   if (playing) {
     for (const p2 of hs.placed) if (p2.id === 'musicbox') spinning.set(p2.uid, { a: (spinning.get(p2.uid) || {}).a || 0, speed: 0, stopping: false });
-    anim(pl, 'wiggle'); say('（转了转发条）\n叮叮咚咚……', 1800);
+    anim(pl, 'wiggle'); say(V('home09', '（转了转发条）\n叮叮咚咚……'), 1800);
   } else {
     for (const sp of spinning.values()) sp.stopping = true;
-    say('……停下来了。', 1200);
+    say(V('home10', '……停下来了。'), 1200);
   }
 }
 function updateSpinners(dt) {
@@ -434,7 +436,7 @@ function water(pl) {
   fxLater(can, 1600);
   for (let i = 0; i < 6; i++) setTimeout(() => { const e = document.createElement('i'); e.className = 'drop'; e.style.left = pct(pl.x - 18 + rnd(-6, 10), LW); e.style.top = pct(pl.y - d.h - 30, LH); fxLater(e, 900); }, 300 + i * 120);
   s.drip && s.drip(); setTimeout(() => anim(pl, 'sway'), 500);
-  say(pick(['浇水。', '……要长大哦。', '（小心地倒）']), 1400);
+  say(pick(THEME.text.lines.water), 1400);
 }
 function sparkle(x, y) { for (let i = 0; i < 5; i++) { const e = document.createElement('i'); e.className = 'hspark'; e.textContent = '✦'; e.style.left = pct(x + rnd(-30, 30), LW); e.style.top = pct(y + rnd(-20, 20), LH); e.style.animationDelay = i * .07 + 's'; fxLater(e, 1000); } }
 function renderGlows(flickUid) {
@@ -453,7 +455,7 @@ $$('.rspot').forEach(b => b.addEventListener('click', e => {
   e.stopPropagation(); const s = SFX();
   if (b.dataset.r === 'window') { winOpen = !winOpen; s.tick && s.tick(); paintRoom(); say(winOpen ? '……风，有苹果的味道。' : '关窗。', 1600); }
   if (b.dataset.r === 'bulb') { hs.bulb = hs.bulb === false; persist(); s.tick && s.tick(); renderGlows('bulb'); }
-  if (b.dataset.r === 'door') say('前院……下次再去。', 1600);
+  if (b.dataset.r === 'door') say(V('home11', '前院……下次再去。'), 1600);
 }));
 let petalT = 0;
 function updatePetals(dt) {
@@ -476,12 +478,12 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 function show() {
-  if (GD.running()) { GD.say('还在营业……\n打烊以后再回家。'); return; }
-  if (GD.day() < 2) { GD.say('第一天打烊以后，\n主人说要带我去一个地方。'); return; }
+  if (GD.running()) { GD.say(V('home12', '还在营业……\n打烊以后再回家。')); return; }
+  if (GD.day() < 2) { GD.say(STORY.homeLocked); return; }
   GD.closeSheet && GD.closeSheet();   // the day report / welcome note belongs to the shop
   document.body.classList.add('at-home'); shown = true; if (typeof BGM !== 'undefined') BGM.scene('home');
   $$('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === 'home'));
-  updateNightBtn(); paintRoom(); if (!hs.intro) intro(); else say(pick(['……回来了。', '（伸了个懒腰）', '今天也辛苦了。']), 1600);
+  updateNightBtn(); paintRoom(); if (!hs.intro) intro(); else say(pick(THEME.text.lines.homeBack), 1600);
   scrollTo({ top: 0, behavior: 'smooth' });
 }
 function hide() {
@@ -490,14 +492,11 @@ function hide() {
   $$('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === 'shop'));
 }
 function intro() {
-  hsheet.innerHTML = `<div class="paper owner"><h3>苹果园里的小屋</h3>
-    <p>打烊以后，主人带她穿过苹果园，停在那棵青苹果树下。</p>
-    <p>树下有一间旧木头小屋。「以前是放苹果筐的，」主人推开门，「现在给你住。」</p>
-    <p>屋里空空的，只有她以前睡的那个篮子。</p>
-    <p class="sign">用小店赚的硬币，去<b>家具店</b>买东西，再从<b>收纳箱</b>里拖进房间摆好吧。<br>先买一张床，怎么样？（稻草小床垫就很便宜）</p>
-    <div class="row"><button class="btn" data-hgo="in">进去看看 →</button></div></div>`;
+  const S = STORY.home;
+  hsheet.innerHTML = `<div class="paper owner"><h3>${S.title}</h3>${S.html}
+    <div class="row"><button class="btn" data-hgo="in">${S.button || '进去看看 →'}</button></div></div>`;
   hsheet.className = 'sheet on';
-  hsheet.querySelector('[data-hgo="in"]').addEventListener('click', () => { hs.intro = true; persist(); closeSheet(); say('……这里，是我的？', 2200); G.vl -= 260; G.vr += 260; });
+  hsheet.querySelector('[data-hgo="in"]').addEventListener('click', () => { hs.intro = true; persist(); closeSheet(); say(S.after || '', 2200); G.vl -= 260; G.vr += 260; });
 }
 $$('.tabs button').forEach(b => b.addEventListener('click', () => b.dataset.view === 'home' ? show() : hide()));
 $('#backToShop').addEventListener('click', hide);

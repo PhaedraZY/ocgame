@@ -446,3 +446,22 @@ b.neg { color: #d1667e !important; }
 .paper .order-line { text-align: center; padding: 4px 8px; background: #f3f7e6; border-radius: 10px; }
 .m-btn[hidden] { display: none; }
 .float.bad { color: #b56a6a; font-size: clamp(11px, 1.2vw, 16px); }
+
+/* ---- theme UI skins (boot.js adds html.skin-<name> when theme/images has ui.<name>.png) ---- */
+html.skin-page body { background: var(--ui-page) repeat; }
+html.skin-card .card { background: var(--ui-card) center / 100% 100% no-repeat; }
+html.skin-paper .paper { background: var(--ui-paper) center / 100% 100% no-repeat; }
+html.skin-note .note, html.skin-note .gnote { background: var(--ui-note) center / 100% 100% no-repeat; }
+html.skin-button .btn { background: var(--ui-button) center / 100% 100% no-repeat; border-color: transparent; }
+html.skin-button-ghost .btn.ghost { background: var(--ui-button-ghost) center / 100% 100% no-repeat; border-color: transparent; }
+html.skin-sticky .sticky { background: var(--ui-sticky) center / 100% 100% no-repeat; }
+html.skin-sticky .sticky::before { display: none; }
+html.skin-tape .tape { background: var(--ui-tape) center / 100% 100% no-repeat !important; }
+html.skin-shopcard .buy { background: var(--ui-shopcard) center / 100% 100% no-repeat; border-color: transparent; }
+
+/* soda fill gauge: green band = let go here */
+.gauge { position: absolute; z-index: 6; width: clamp(10px, 1.1vw, 15px); margin-left: -6px; border: 1.6px solid var(--line); border-radius: 8px; background: #fffdf6; overflow: hidden; opacity: 0; transition: opacity .2s; --l: 0; pointer-events: none; }
+.gauge.on { opacity: 1; }
+.gauge b { position: absolute; left: 0; right: 0; background: #cfe7a5; }
+.gauge i { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--l) * 100%); background: #a9d6ea99; border-top: 2px solid #7fb3cf; }
+.chalk.full span { font-size: clamp(6px, .68vw, 10px); }

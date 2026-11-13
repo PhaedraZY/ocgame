@@ -25,13 +25,16 @@ mq.addEventListener ? mq.addEventListener('change', apply) : mq.addListener(appl
 addEventListener('resize', () => { if (on) measure(); });
 
 /* ---------- build the phone UI once ---------- */
-const PANEL = [
-  ['egg', '鸡蛋', 'egg'], ['milk', '牛奶', 'milk'], ['sugar', '糖', 'sugar'], ['apple', '青苹果', 'apple'], ['gel', '吉利丁', 'gel'],
-  ['bowl', '搅拌碗', 'batter'], ['board', '砧板', 'chopped'], ['stove', '小锅', 'mold'], ['steamer', '蒸笼', null], ['fridge', '冰箱', 'jelly'],
-  ['plate0', '盘子', null], ['plate1', '盘子', null], ['plate2', '盘子', null], ['caramel', '焦糖', 'caramel'], ['bell', '出餐', null],
-  ['bread', '面包篮', 'bunB', 'burger'], ['lettuce', '生菜', 'lettuce', 'burger'], ['pine', '菠萝片', 'pine', 'burger'], ['eggF', '煎蛋', 'egg', 'burger'], ['griddle', '平底锅', 'eggC', 'burger'],
-  ['flour', '面粉', 'flour', 'choco'], ['choco', '巧克力', 'chocoB', 'choco'],
-];
+const ORDER = ['source', 'bench', 'cooker', 'fill', 'plates', 'topping', 'bell'];
+function panelList() {
+  const st = THEME.kitchen.stations.slice().sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type));
+  const out = [];
+  for (const s of st) {
+    if (s.type === 'plates') s.spots.forEach((_, i) => out.push({ id: 'plate' + i, label: s.name, s }));
+    else out.push({ id: s.id, label: s.type === 'bell' ? '出餐' : s.pad || s.name.replace(/（.*）/, ''), s });
+  }
+  return out;
+}
 const btns = {};
 let strip, panel;
 function iconCanvas(size, draw) {
@@ -52,14 +55,16 @@ function build() {
   strip = document.createElement('div'); strip.className = 'm-orders'; strip.innerHTML = '<span class="m-empty">还没有客人……</span>';
   card.parentNode.insertBefore(strip, card);
   panel = document.createElement('div'); panel.className = 'm-panel';
-  for (const [id, label, icon, need] of PANEL) {
-    const b = document.createElement('button'); b.className = 'm-btn'; b.dataset.id = id; if (need) b.dataset.need = need;
+  for (const { id, label, s } of panelList()) {
+    const b = document.createElement('button'); b.className = 'm-btn'; b.dataset.id = id; if (s.need) b.dataset.need = s.need;
     const ic = document.createElement('span'); ic.className = 'm-ic';
-    if (icon) ic.append(iconCanvas(30, p => A.drawCarry(p, icon)));
-    else if (id === 'steamer') ic.append(iconCanvas(30, p => { p.c.translate(4, 4); p.c.scale(.42, .42); A.drawSteamer(p, { state: 'empty' }); }));
-    else if (id === 'bell') ic.textContent = '🔔';
+    const icon = s.icon || (s.item && GD.itemCarry(s.item));
+    if (s.type === 'bell') ic.textContent = '🔔';
+    else if (icon) ic.append(iconCanvas(30, p => A.drawCarry(p, icon)));
+    else if (s.draw && s.box) ic.append(iconCanvas(30, p => { const k = 52 / Math.max(s.box[2], s.box[3]); p.c.translate(4, 4); p.c.scale(k, k); A.drawStation(p, s.draw, (s.slots || 1) > 1 ? [] : { inputs: [], coming: [], state: 'idle', t: 0, taps: 0 }); }));
     b.append(ic, Object.assign(document.createElement('b'), { textContent: label }), Object.assign(document.createElement('small'), { textContent: '' }));
     b.addEventListener('click', () => GD.click(id));
+    b.addEventListener('pointerdown', () => GD.press(id, true));   // hold-to-fill stations
     panel.append(b); btns[id] = b;
   }
   card.parentNode.insertBefore(panel, card.nextSibling);
@@ -99,36 +104,21 @@ function placeScene(scene, card, c, follow) {
 }
 
 /* ---------- live panel / orders ---------- */
-const NAMES = { pudding: '牛奶布丁', jelly: '青苹果果冻', burger: '菠萝鸡蛋堡', choco: '巧克力松饼' };
 const orderIcons = new WeakMap();
 let lastSig = '', tick = 0;
-function status(id, kit) {
-  const b = kit.bowl, pot = kit.pot, s = kit.steamer;
-  const pctT = (t, T) => Math.min(99, Math.round(t / T * 100)) + '%';
-  switch (id) {
-    case 'bowl': return b.mixed ? [b.flour ? '面糊 ✓' : '布丁液 ✓', 'ok'] : (b.egg && b.milk && (b.sugar || b.flour)) ? [`搅 ${b.stir}/3`, 'go'] : [`${[b.egg, b.milk, b.sugar || b.flour].filter(Boolean).length}/3 样`, ''];
-    case 'board': return kit.board.state === 'chopped' ? ['切好 ✓', 'ok'] : kit.board.state === 'apple' ? [`切 ${kit.board.chop}/3`, 'go'] : ['空', ''];
-    case 'stove': return pot.state === 'cooking' ? ['煮 ' + pctT(pot.t, 5), 'run'] : pot.state === 'done' ? (pot.t > 9 ? ['快焦了!', 'warn'] : ['好了 ✓', 'ok']) : pot.state === 'burnt' ? ['焦了', 'bad'] : [`${[pot.apple, pot.gel].filter(Boolean).length}/2 样`, ''];
-    case 'steamer': return s.state === 'steaming' ? ['蒸 ' + pctT(s.t, 6), 'run'] : s.state === 'done' ? (s.t > 10 ? ['快老了!', 'warn'] : ['好了 ✓', 'ok']) : s.state === 'burnt' ? ['蒸老了', 'bad'] : ['空', ''];
-    case 'fridge': { const r = kit.fridge.filter(f => f.state === 'ready').length, c = kit.fridge.filter(f => f.state === 'chill'); return r ? [`${r} 份好了 ✓`, 'ok'] : c.length ? ['冷藏 ' + pctT(Math.max(...c.map(f => f.t)), 8), 'run'] : ['空', '']; }
-    case 'plate0': case 'plate1': case 'plate2': { const it = kit.plates[+id.slice(5)]; return !it || it === 'reserved' ? ['空', ''] : it.dish === 'pudding' && !it.caramel ? ['待淋焦糖', 'go'] : it.dish === 'choco' && !it.sauce ? ['待淋巧克力', 'go'] : it.dish === 'burger' && it.messy ? ['叠错了', 'bad'] : it.dish === 'burger' && it.layers.length < 5 ? [`汉堡 ${it.layers.length}/5`, 'go'] : [NAMES[it.dish], 'ok']; }
-    case 'griddle': return [kit.griddle.map(g => !g || g === 'reserved' ? '空' : g.state === 'flip' ? '翻面!' : g.state === 'burnt' ? '糊了' : g.state === 'done' ? '好✓' : '煎…').join('·'),
-        kit.griddle.some(g => g && g.state === 'flip') ? 'warn' : kit.griddle.some(g => g && g.state === 'burnt') ? 'bad' : kit.griddle.some(g => g && g.state === 'done') ? 'ok' : kit.griddle.some(g => g && g !== 'reserved') ? 'run' : ''];
-    default: return ['', ''];
-  }
-}
 function refreshPanel() {
   const kit = GD.kit(); if (!kit) return;
-  for (const [id] of PANEL) {
-    const b = btns[id], [txt, cls] = status(id, kit);
-    if (b.dataset.need) b.hidden = !GD.isOpen(b.dataset.need);
+  for (const { id, s } of panelList()) {
+    const b = btns[id], [txt, cls] = GD.status(id);
+    if (s.need) b.hidden = !GD.isOpen(s.need);
     b.lastElementChild.textContent = txt; b.dataset.s = cls;
-    if (id.startsWith('plate')) {
-      const it = kit.plates[+id.slice(5)], sig = it && it !== 'reserved' ? it.dish + it.caramel : '';
-      if (b.dataset.sig !== sig) { b.dataset.sig = sig; const ic = b.firstElementChild; ic.innerHTML = ''; if (sig) ic.append(iconCanvas(30, p => { p.c.scale(.75, .75); A.drawPlateItem(p, it); })); }
+    if (s.type === 'plates') {
+      const it = kit[s.id][+id.slice(5)], sig = it && it !== 'reserved' ? JSON.stringify(it) : '';
+      if (b.dataset.sig !== sig) { b.dataset.sig = sig; const ic = b.firstElementChild; ic.innerHTML = ''; if (sig) ic.append(iconCanvas(30, p => { p.c.scale(.75, .75); A.drawPlate(p, it); })); }
     }
   }
-  const h = GD.hint(); for (const [id, b] of Object.entries(btns)) b.classList.toggle('hint', id === h || (h && h.startsWith('griddle') && id === 'griddle'));
+  const h = GD.hint();
+  for (const [id, b] of Object.entries(btns)) b.classList.toggle('hint', !!h && (id === h || (h.startsWith(id) && /\d$/.test(h) && !id.startsWith('plate'))));
 }
 function refreshOrders() {
   const cs = GD.customers().filter(c => c.phase !== 'leave' && (c.ci >= 0 || c.qi >= 0));

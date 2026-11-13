@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OC 工作站</title>
+<link rel="stylesheet" href="https://npm.elemecdn.com/lxgw-wenkai-webfont@1.7.0/style.css">
+<link rel="stylesheet" href="../engine/studio.css?v=28">
+</head>
+<body>
+<header class="st-top">
+  <b id="stName">OC 工作站</b>
+  <span class="st-state" id="stState">读取中……</span>
+  <span class="grow"></span>
+  <button id="btnPreview" class="main">刷新预览</button>
+  <button id="btnExport" class="main">导出主题包（zip）</button>
+  <button id="btnReset">清空草稿</button>
+</header>
+<div class="st-wrap">
+  <nav class="st-nav" id="nav"></nav>
+  <main class="st-main" id="main"></main>
+  <aside class="st-side">
+    <div class="st-side-head"><b>预览</b><span>（草稿生效的样子）</span>
+      <label class="mini"><input type="checkbox" id="pvAuto" checked> 改完自动刷新</label><select id="pvDay"><option value="">按存档</option></select></div>
+    <iframe id="preview" title="预览"></iframe>
+  </aside>
+</div>
+<input type="file" id="filePick" hidden>
+<script>window.BOOT_SCRIPTS = ['@sketch.js', '@skin.js', 'art.js', 'home-art.js', '@tools.js', '@studio.js']; window.BOOT_DRAFT = true;</script>
+<script src="../engine/boot.js?v=28"></script>
+</body>
+</html>

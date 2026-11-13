@@ -2,11 +2,11 @@
    浏览器不允许自动出声，所以在访客第一次点击 / 按键后才开始播放。设置存在 localStorage。 */
 const BGM = (() => {
   'use strict';
-  const KEY = 'guodong.settings';
+  const KEY = THEME.save.settings;
   let st = { music: true, vol: .55 };
   try { Object.assign(st, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (_) {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (_) {} };
-  const tracks = { shop: new Audio('assets/audio/shop.mp3'), home: new Audio('assets/audio/home.mp3') };
+  const tracks = { shop: new Audio(THEME.audio.shop), home: new Audio(THEME.audio.home) };
   for (const a of Object.values(tracks)) { a.loop = true; a.preload = 'none'; a.volume = 0; }
   let scene = 'shop', unlocked = false, raf = 0;
 
@@ -98,7 +98,7 @@ const BGM = (() => {
     },
   };
   /* ---- the music box: the user's own recording; while it plays, the room music stops ---- */
-  const mb = new Audio('assets/audio/musicbox.mp3'); mb.preload = 'none';
+  const mb = new Audio(THEME.audio.musicbox); mb.preload = 'none';
   let mbOn = false, mbEnd = null;
   mb.addEventListener('ended', () => { mbOn = false; duck = 1; fade(); mbEnd && mbEnd(); });
   const musicBox = {

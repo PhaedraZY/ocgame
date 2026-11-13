@@ -1,0 +1,44 @@
+{
+  "id": "guodong",
+  "name": "果冻",
+  "page": {
+    "title": "果冻的小店 · 青苹果兔兔甜品屋",
+    "description": "主人出门进货了，今天前台交给小兔果冻。来帮她接单、做果冻和布丁，经营三天小店吧。",
+    "date": "a little shop · 主人不在家",
+    "h1": "果冻的小店",
+    "sub": "青苹果兔兔甜品屋 —— 今天，前台交给一只刚变成人的小兔。",
+    "homeName": "苹果园小屋",
+    "footer": "← 回到 OC 小宇宙"
+  },
+  "save": {
+    "shop": "guodong.shop.v2",
+    "home": "guodong.home.v1",
+    "settings": "guodong.settings"
+  },
+  "oc": {
+    "name": "果冻",
+    "body": "assets/body.webp",
+    "earL": "assets/earL.webp",
+    "earR": "assets/earR.webp",
+    "card": "assets/card.webp",
+    "full": "assets/full.webp"
+  },
+  "audio": {
+    "shop": "assets/audio/shop.mp3",
+    "home": "assets/audio/home.mp3",
+    "musicbox": "assets/audio/musicbox.mp3"
+  },
+  "files": {
+    "dishes": "dishes.json",
+    "customers": "customers.json",
+    "shopDecor": "shop-decor.json",
+    "furniture": "furniture.json",
+    "text": "text.json",
+    "kitchen": "kitchen.json"
+  },
+  "images": [],
+  "ui": {
+    "colors": {},
+    "fonts": {}
+  }
+}

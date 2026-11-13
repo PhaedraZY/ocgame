@@ -9,14 +9,14 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cellipse cx='22' cy='18' rx='7' ry='16' fill='%23bcd97a' stroke='%237a6c66' stroke-width='3'/%3E%3Cellipse cx='42' cy='18' rx='7' ry='16' fill='%23bcd97a' stroke='%237a6c66' stroke-width='3'/%3E%3Ccircle cx='32' cy='42' r='19' fill='%23bcd97a' stroke='%237a6c66' stroke-width='3'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://npm.elemecdn.com/lxgw-wenkai-webfont@1.7.0/style.css">
 <link rel="stylesheet" href="https://fonts.loli.net/css2?family=ZCOOL+KuaiLe&family=Caveat:wght@600&display=swap">
-<link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="../engine/style.css?v=28">
 </head>
 <body>
 
 <header class="top">
-  <p class="date">a little shop · 主人不在家</p>
-  <h1><span class="tape t1"></span>果冻的小店</h1>
-  <p class="sub">青苹果兔兔甜品屋 —— 今天，前台交给一只刚变成人的小兔。</p>
+  <p class="date" data-t="page.date">a little shop · 主人不在家</p>
+  <h1><span class="tape t1"></span><span data-t="page.h1">果冻的小店</span></h1>
+  <p class="sub" data-t="page.sub">青苹果兔兔甜品屋 —— 今天，前台交给一只刚变成人的小兔。</p>
   <nav class="tabs" aria-label="切换场景"><button class="on" data-view="shop">🍮 小店</button><button data-view="home">🏠 小屋</button></nav>
   <div class="music" id="music"><button>🎵 音乐：开</button><input type="range" min="0" max="100" aria-label="音量"></div>
 </header>
@@ -37,9 +37,9 @@
 
       <div id="girl" role="button" tabindex="0" aria-label="果冻（可以戳一戳）">
         <div class="g-jelly">
-          <img class="ear ear-l" src="assets/earL.webp" alt="" draggable="false">
-          <img class="ear ear-r" src="assets/earR.webp" alt="" draggable="false">
-          <img class="body" src="assets/body.webp" alt="果冻：戴兔耳发箍、绿色双马尾的女孩，站在柜台后面" draggable="false">
+          <img class="ear ear-l" src="assets/earL.webp" data-img="oc.earL" alt="" draggable="false">
+          <img class="ear ear-r" src="assets/earR.webp" data-img="oc.earR" alt="" draggable="false">
+          <img class="body" src="assets/body.webp" data-img="oc.body" alt="果冻：戴兔耳发箍、绿色双马尾的女孩，站在柜台后面" draggable="false">
         </div>
         <p class="gbubble" id="gbubble" aria-live="polite"></p>
       </div>
@@ -89,9 +89,9 @@
       <div id="homeItems"></div>
       <div id="hgirl" role="button" tabindex="0" aria-label="果冻（可以戳一戳）">
         <div class="g-jelly">
-          <img class="ear ear-l" src="assets/earL.webp" alt="" draggable="false">
-          <img class="ear ear-r" src="assets/earR.webp" alt="" draggable="false">
-          <img class="body" src="assets/body.webp" alt="果冻" draggable="false">
+          <img class="ear ear-l" src="assets/earL.webp" data-img="oc.earL" alt="" draggable="false">
+          <img class="ear ear-r" src="assets/earR.webp" data-img="oc.earR" alt="" draggable="false">
+          <img class="body" src="assets/body.webp" data-img="oc.body" alt="果冻" draggable="false">
         </div>
       </div>
       <div id="nightShade"></div>
@@ -102,7 +102,7 @@
       <button class="rspot" data-r="door" style="left:73.3%;top:32.8%;width:14.2%;height:44.4%" aria-label="门"></button>
       <p class="gbubble hb" id="hbubble" aria-live="polite"></p>
       <div class="hud">
-        <span class="day">苹果园小屋</span>
+        <span class="day" data-t="page.homeName">苹果园小屋</span>
         <button class="nightbtn" id="nightBtn">🌙 夜晚</button>
         <span>舒适度 ♥ <b id="homeComfort">0</b></span>
         <span class="coin"><i></i><b id="homeCoins">0</b></span>
@@ -124,14 +124,8 @@
 
 
 
-<footer class="foot"><a href="../">← 回到 OC 小宇宙</a></footer>
+<footer class="foot"><a href="../" data-t="page.footer">← 回到 OC 小宇宙</a></footer>
 
-<script src="sketch.js?v=20"></script>
-<script src="art.js?v=20"></script>
-<script src="bgm.js?v=20"></script>
-<script src="game.js?v=20"></script>
-<script src="home-art.js?v=20"></script>
-<script src="home.js?v=20"></script>
-<script src="mobile.js?v=20"></script>
+<script src="../engine/boot.js?v=28"></script>
 </body>
 </html>

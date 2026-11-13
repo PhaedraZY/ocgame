@@ -1,0 +1,458 @@
+{
+  "categories": {
+    "bed": "床",
+    "wardrobe": "衣柜",
+    "table": "桌子",
+    "seat": "椅凳",
+    "sofa": "沙发",
+    "plant": "盆栽和花",
+    "wallart": "挂画",
+    "light": "灯",
+    "rug": "地毯",
+    "deco": "墙饰和摆件"
+  },
+  "scale": 1.2,
+  "items": {
+    "basket": {
+      "name": "旧篮子",
+      "w": 120,
+      "h": 62,
+      "zone": "floor",
+      "price": 0,
+      "comfort": 2,
+      "soft": true,
+      "surf": {
+        "y": 18,
+        "x0": 24,
+        "x1": 96
+      },
+      "line": "……以前，每天睡在这里。",
+      "cat": "bed"
+    },
+    "bed": {
+      "name": "青苹果小床",
+      "w": 270,
+      "h": 150,
+      "zone": "floor",
+      "price": 260,
+      "comfort": 22,
+      "soft": true,
+      "surf": {
+        "y": 62,
+        "x0": 40,
+        "x1": 236
+      },
+      "line": "……软的。比篮子软。",
+      "cat": "bed"
+    },
+    "rug": {
+      "name": "波点小地毯",
+      "w": 230,
+      "h": 44,
+      "zone": "rug",
+      "price": 50,
+      "comfort": 6,
+      "soft": true,
+      "line": "可以在上面打滚。",
+      "cat": "rug"
+    },
+    "desk": {
+      "name": "小书桌",
+      "w": 176,
+      "h": 112,
+      "zone": "floor",
+      "price": 220,
+      "comfort": 6,
+      "surf": {
+        "y": 2,
+        "x0": 10,
+        "x1": 166
+      },
+      "line": "这里可以……练写字。",
+      "cat": "table"
+    },
+    "chair": {
+      "name": "小木椅",
+      "w": 74,
+      "h": 116,
+      "zone": "floor",
+      "price": 40,
+      "comfort": 3,
+      "line": "坐、坐上去了。",
+      "cat": "seat"
+    },
+    "wardrobe": {
+      "name": "旧木衣柜",
+      "w": 150,
+      "h": 232,
+      "zone": "floor",
+      "price": 240,
+      "comfort": 6,
+      "surf": {
+        "y": 2,
+        "x0": 14,
+        "x1": 136
+      },
+      "line": "衣服……只有一件。\n现在有地方放了。",
+      "cat": "wardrobe"
+    },
+    "monstera": {
+      "name": "大叶子盆栽",
+      "w": 96,
+      "h": 156,
+      "zone": "floor",
+      "price": 200,
+      "comfort": 6,
+      "line": "叶子比我的耳朵还大。",
+      "cat": "plant"
+    },
+    "shelf": {
+      "name": "墙上小架子",
+      "w": 170,
+      "h": 46,
+      "zone": "wall",
+      "price": 45,
+      "comfort": 3,
+      "surf": {
+        "y": 16,
+        "x0": 8,
+        "x1": 162
+      },
+      "line": "可以放小东西。",
+      "cat": "deco"
+    },
+    "frame": {
+      "name": "挂画：主人和我",
+      "w": 84,
+      "h": 100,
+      "zone": "wall",
+      "price": 180,
+      "comfort": 7,
+      "line": "画的是……主人，\n和兔子时候的我。",
+      "cat": "wallart"
+    },
+    "clock": {
+      "name": "兔耳挂钟",
+      "w": 74,
+      "h": 92,
+      "zone": "wall",
+      "price": 200,
+      "comfort": 4,
+      "line": "滴答滴答。\n……耳朵跟着动。",
+      "cat": "deco"
+    },
+    "lights": {
+      "name": "星星串灯",
+      "w": 280,
+      "h": 46,
+      "zone": "wall",
+      "price": 220,
+      "comfort": 7,
+      "line": "一闪一闪的。",
+      "cat": "light"
+    },
+    "plush": {
+      "name": "兔子玩偶",
+      "w": 56,
+      "h": 64,
+      "zone": "small",
+      "price": 50,
+      "comfort": 6,
+      "soft": true,
+      "line": "……和我长得有点像。",
+      "cat": "deco"
+    },
+    "pillow": {
+      "name": "青苹果抱枕",
+      "w": 60,
+      "h": 50,
+      "zone": "small",
+      "price": 30,
+      "comfort": 5,
+      "soft": true,
+      "line": "抱着睡。",
+      "cat": "deco"
+    },
+    "lamp": {
+      "name": "蘑菇台灯",
+      "w": 52,
+      "h": 70,
+      "zone": "small",
+      "price": 50,
+      "comfort": 5,
+      "line": "晚上，这里会亮。",
+      "cat": "light"
+    },
+    "clover": {
+      "name": "三叶草小盆",
+      "w": 50,
+      "h": 58,
+      "zone": "small",
+      "price": 20,
+      "comfort": 3,
+      "line": "……要每天浇水。",
+      "cat": "plant"
+    },
+    "mat": {
+      "cat": "bed",
+      "name": "稻草小床垫",
+      "w": 220,
+      "h": 62,
+      "zone": "floor",
+      "price": 40,
+      "comfort": 10,
+      "soft": true,
+      "surf": {
+        "y": 26,
+        "x0": 24,
+        "x1": 196
+      },
+      "line": "……比篮子大一点。"
+    },
+    "canopy": {
+      "cat": "bed",
+      "name": "云朵四柱床",
+      "w": 290,
+      "h": 252,
+      "zone": "floor",
+      "price": 1600,
+      "comfort": 40,
+      "soft": true,
+      "surf": {
+        "y": 168,
+        "x0": 50,
+        "x1": 250
+      },
+      "limit": 1,
+      "line": "……像睡在云里面。\n（耳朵都放松了）"
+    },
+    "rack": {
+      "cat": "wardrobe",
+      "name": "小挂衣架",
+      "w": 84,
+      "h": 194,
+      "zone": "floor",
+      "price": 45,
+      "comfort": 3,
+      "line": "围裙，挂在这里。"
+    },
+    "fancyward": {
+      "cat": "wardrobe",
+      "name": "雕花兔耳衣柜",
+      "w": 172,
+      "h": 262,
+      "zone": "floor",
+      "price": 1200,
+      "comfort": 14,
+      "surf": {
+        "y": 40,
+        "x0": 18,
+        "x1": 154
+      },
+      "limit": 1,
+      "line": "镜子里……有一只兔子。\n啊，是我。"
+    },
+    "crate": {
+      "cat": "table",
+      "name": "苹果箱小桌",
+      "w": 104,
+      "h": 74,
+      "zone": "floor",
+      "price": 25,
+      "comfort": 2,
+      "surf": {
+        "y": 4,
+        "x0": 6,
+        "x1": 98
+      },
+      "line": "以前装苹果的箱子。"
+    },
+    "vanity": {
+      "cat": "table",
+      "name": "梳妆台",
+      "w": 184,
+      "h": 214,
+      "zone": "floor",
+      "price": 1000,
+      "comfort": 12,
+      "surf": {
+        "y": 112,
+        "x0": 12,
+        "x1": 172
+      },
+      "limit": 1,
+      "line": "……发箍，要戴正。"
+    },
+    "stump": {
+      "cat": "seat",
+      "name": "树桩小凳",
+      "w": 64,
+      "h": 58,
+      "zone": "floor",
+      "price": 15,
+      "comfort": 2,
+      "surf": {
+        "y": 6,
+        "x0": 10,
+        "x1": 54
+      },
+      "line": "苹果园里捡来的。"
+    },
+    "rocker": {
+      "cat": "seat",
+      "name": "藤编摇椅",
+      "w": 126,
+      "h": 152,
+      "zone": "floor",
+      "price": 520,
+      "comfort": 12,
+      "line": "摇啊摇……\n要睡着了。"
+    },
+    "cushions": {
+      "cat": "sofa",
+      "name": "软坐垫堆",
+      "w": 116,
+      "h": 58,
+      "zone": "floor",
+      "price": 60,
+      "comfort": 6,
+      "soft": true,
+      "line": "一屁股坐下去。"
+    },
+    "sofa": {
+      "cat": "sofa",
+      "name": "小布艺沙发",
+      "w": 206,
+      "h": 112,
+      "zone": "floor",
+      "price": 320,
+      "comfort": 14,
+      "soft": true,
+      "surf": {
+        "y": 54,
+        "x0": 34,
+        "x1": 172
+      },
+      "limit": 1,
+      "line": "可以请客人坐了。"
+    },
+    "velvet": {
+      "cat": "sofa",
+      "name": "兔耳天鹅绒沙发",
+      "w": 246,
+      "h": 158,
+      "zone": "floor",
+      "price": 1500,
+      "comfort": 26,
+      "soft": true,
+      "surf": {
+        "y": 92,
+        "x0": 40,
+        "x1": 206
+      },
+      "limit": 1,
+      "line": "……软得陷进去了。\n像被耳朵抱住。"
+    },
+    "tulip": {
+      "cat": "plant",
+      "name": "郁金香花盆",
+      "w": 52,
+      "h": 74,
+      "zone": "small",
+      "price": 45,
+      "comfort": 4,
+      "line": "粉色的，像耳朵里面。"
+    },
+    "hydrangea": {
+      "cat": "plant",
+      "name": "绣球花架",
+      "w": 116,
+      "h": 176,
+      "zone": "floor",
+      "price": 600,
+      "comfort": 12,
+      "line": "蓝色的、粉色的……\n一团一团。"
+    },
+    "doodle": {
+      "cat": "wallart",
+      "name": "手绘涂鸦",
+      "w": 72,
+      "h": 66,
+      "zone": "wall",
+      "price": 20,
+      "comfort": 2,
+      "line": "是我画的……\n（是兔子。真的是兔子。）"
+    },
+    "oil": {
+      "cat": "wallart",
+      "name": "金框油画·苹果园",
+      "w": 168,
+      "h": 128,
+      "zone": "wall",
+      "price": 900,
+      "comfort": 14,
+      "line": "傍晚的苹果园。\n……我出生的地方。"
+    },
+    "flowerlights": {
+      "cat": "light",
+      "name": "花朵灯串",
+      "w": 300,
+      "h": 60,
+      "zone": "wall",
+      "price": 360,
+      "comfort": 9,
+      "line": "每一朵，都会亮。"
+    },
+    "floorlamp": {
+      "cat": "light",
+      "name": "流苏落地灯",
+      "w": 84,
+      "h": 222,
+      "zone": "floor",
+      "price": 480,
+      "comfort": 9,
+      "line": "流苏，会跟着晃。"
+    },
+    "strawrug": {
+      "cat": "rug",
+      "name": "草编圆地毯",
+      "w": 212,
+      "h": 46,
+      "zone": "rug",
+      "price": 180,
+      "comfort": 6,
+      "line": "有太阳的味道。"
+    },
+    "bunnyrug": {
+      "cat": "rug",
+      "name": "兔子绒毯",
+      "w": 266,
+      "h": 66,
+      "zone": "rug",
+      "price": 950,
+      "comfort": 14,
+      "soft": true,
+      "line": "……是兔子的形状！"
+    },
+    "wreath": {
+      "cat": "deco",
+      "name": "干花环",
+      "w": 92,
+      "h": 98,
+      "zone": "wall",
+      "price": 200,
+      "comfort": 5,
+      "line": "花干了，也还是香的。"
+    },
+    "musicbox": {
+      "cat": "deco",
+      "name": "旋转木马音乐盒",
+      "w": 66,
+      "h": 84,
+      "zone": "small",
+      "price": 420,
+      "comfort": 8,
+      "line": "转起来了……\n（叮叮咚咚）"
+    }
+  }
+}
