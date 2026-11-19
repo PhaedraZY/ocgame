@@ -394,11 +394,36 @@
     return false;
   }
 
-  const TSTEPS = ['词汇', '对话', '练习'];
+
+  // 带讲解的主题（数字）：第一步是讲解，每节一张可以播放的表
+  function topicLesson(t, body, foot) {
+    let k = 0;
+    body.innerHTML = '<p class="tiny" style="margin-bottom:12px">每一行都能点播放。粉色方括号是实际读音，和写法不一样时才标。</p>' +
+      t.lesson.map(sec => '<section class="gram tlesson"><h3>' + esc(sec.h) + '</h3><p class="g-desc" style="color:var(--ink)">' + esc(sec.p) + '</p>' +
+        '<div class="g-table-wrap"><table class="g-table num-table"><tbody>' + sec.rows.map(r => {
+          const i = k++;
+          return '<tr><td>' + pbtn(r.ko, KS.vx(i)) + '</td><td class="num-a">' + esc(r.a) + '</td><td><b lang="ko">' + esc(r.ko) + '</b>' + (pronOf(r.ko) ? ' ' + pronTag(r.ko) : '') + '<span class="num-zh-m">' + esc(r.zh) + '</span></td><td class="muted num-zh">' + esc(r.zh) + '</td></tr>';
+        }).join('') + '</tbody></table></div>' +
+        '<div class="row" style="margin-top:10px"><button class="btn sm" data-seqsec>连续播放这一节</button></div>' +
+        (sec.tip ? '<p class="note" style="margin-top:12px">' + esc(sec.tip) + '</p>' : '') + '</section>').join('') + foot(false, true);
+    $$('[data-seqsec]', body).forEach(b => b.onclick = async () => {
+      if (b.dataset.on) { stopAudio(); return; }
+      const sec = b.closest('section'), btns = $$('.play:not(.slow)', sec);
+      b.dataset.on = '1'; b.textContent = '停止';
+      await playSeq(btns.map(x => ({ t: x.dataset.say, v: x.dataset.v })), i => btns.forEach((x, j) => x.classList.toggle('playing', j === i)));
+      btns.forEach(x => x.classList.remove('playing'));
+      delete b.dataset.on; b.textContent = '连续播放这一节';
+    });
+  }
+  // 只比较答案里的数字：7:05、7点5分、7/5 都算对
+  const numGroups = s => (String(s).replace(/[,，]/g, '').match(/\d+/g) || []).map(Number);
+
   function viewTopic(id, step) {
     const t = TOPIC[id];
     if (!t) { location.hash = '#/learn'; return; }
-    step = Math.min(3, Math.max(1, +step || 1));
+    const TSTEPS = t.lesson ? ['讲解', '词汇', '对话', '练习'] : ['词汇', '对话', '练习'];
+    const STEPFN = t.lesson ? [topicLesson, topicWordsStep, topicTalk, topicPractice] : [topicWordsStep, topicTalk, topicPractice];
+    step = Math.min(TSTEPS.length, Math.max(1, +step || 1));
     const ws = topicWords(t), after = EP[t.after];
     main.innerHTML = '<div class="wrap"><div class="ep-head"><div class="kicker"><a href="#/learn">课程</a>　场景词汇</div>' +
       '<div class="cap lg pop" lang="ko">' + esc(t.ko) + '</div><h1>' + esc(t.zh) + '</h1><p class="muted">' + esc(t.intro) + '</p>' +
@@ -411,7 +436,7 @@
       (next ? '<a class="btn primary" href="#/t/' + id + '/' + (step + 1) + '">下一步：' + TSTEPS[step] + '</a>' : '') + '</div>';
     const findWord = x => { const k = ws.findIndex(w => w.ko === (x.lemma || x.ko) || w.f === x.ko); return k >= 0 ? topicCard(t, ws[k], k) : null; };
     main.onclick = e => glossClick(e, '场景词汇：' + t.zh, findWord);
-    [topicWordsStep, topicTalk, topicPractice][step - 1](t, body, foot);
+    STEPFN[step - 1](t, body, foot);
   }
 
   function topicWordsStep(t, body, foot) {
@@ -430,7 +455,7 @@
           (w.ex ? '<div class="w-use">' + pbtn(w.ex, KS.vx(i + 1)) + '<div class="grow">' + glossLine(w.ex, 'w-line', S.set.inter) +
             (pronOf(w.ex) ? '<div class="tiny">读作 <span class="pron">[' + esc(pronOf(w.ex)) + ']</span></div>' : '') +
             '<div class="tiny' + veil + '">' + esc(w.exzh) + '</div></div></div>' : '') + '</div></div>';
-      }).join('') + '</div></section>').join('') + foot(false, true);
+      }).join('') + '</div></section>').join('') + foot(!!t.lesson, true);
     $('#vz').onclick = () => { S.set.veilZh = !S.set.veilZh; save(); stopAudio(); topicWordsStep(t, body, foot); };
     $('#vi').onclick = () => { S.set.inter = !S.set.inter; save(); stopAudio(); topicWordsStep(t, body, foot); };
     const seqBtn = $('#seq');
@@ -511,6 +536,14 @@
         '<div class="choices">' + q.o.map(j => '<button class="choice" lang="ko" data-o="' + j + '">' + esc(ws[j].ko) + '</button>').join('') + '</div><div class="verdict"></div></div>').join('') + '</section>' +
       '<section class="drill"><h3>听写</h3><p class="tiny">听到什么就打什么。需要电脑装了韩语输入法，没装可以跳过。</p>' + dict.map((i, n) => '<div class="q" data-dq="' + n + '"><div class="row">' + pbtn(ws[i].ko, KS.vx(i)) + sbtn(ws[i].ko, KS.vx(i)) + '</div>' +
         '<input class="dict-in" lang="ko" autocomplete="off" spellcheck="false" placeholder="在这里输入韩语"><div class="row" style="margin-top:10px"><button class="btn sm" data-check>检查</button></div><div class="diff"></div><div class="verdict"></div></div>').join('') + '</section>' +
+      (t.numDrill ? '<section class="drill"><h3>听数字，写阿拉伯数字</h3><p class="tiny">听到的数字用阿拉伯数字写出来，比如 3:30、15000、6月10日。只看数字对不对，标点和单位随便写。</p>' +
+        t.numDrill.map((d, n) => '<div class="q" data-nq="' + n + '"><div class="row">' + pbtn(d.ko, KS.vx(n)) + sbtn(d.ko, KS.vx(n)) + '<span class="muted small">第 ' + (n + 1) + ' 题</span></div>' +
+          '<div class="row" style="margin-top:8px"><input class="dict-in num-in" inputmode="decimal" autocomplete="off" placeholder="写数字"><button class="btn sm" data-ncheck>检查</button></div><div class="verdict"></div></div>').join('') + '</section>' : '') +
+      (t.quiz ? '<section class="drill"><h3>选一选</h3>' + t.quiz.map((q, n) => {
+        const order = shuffle(q.opts.map((o, j) => j)), isKo = s => /[가-힣]/.test(s);
+        return '<div class="q" data-tq="' + n + '"><div class="qtext">' + esc(q.q) + '</div><div class="choices">' +
+          order.map(j => '<button class="choice" data-o="' + j + '"' + (isKo(q.opts[j]) ? ' lang="ko"' : '') + '>' + esc(q.opts[j]) + '</button>').join('') + '</div><div class="verdict"></div></div>';
+      }).join('') + '</section>' : '') +
       '<div class="finish" id="finish"><button class="btn primary big" id="done">完成这个主题</button><p class="tiny" style="margin-top:10px">完成后，这 ' + ws.length + ' 个词会进入复习，明天开始出现。</p></div>' + foot(true, false);
     const answer = (box, q, key) => {
       $$('.choice', box).forEach(c => c.onclick = () => {
@@ -523,6 +556,32 @@
         if (key === 'ko') play(KS.wordSay(w), KS.vx(q.i));
       });
     };
+    $$('[data-nq]', body).forEach(box => {
+      const d = t.numDrill[+box.dataset.nq], inp = $('input', box);
+      const go = () => {
+        if (!inp.value.trim()) { inp.focus(); return; }
+        const right = numGroups(inp.value).join(',') === numGroups(d.a).join(',');
+        if (right && !box.dataset.ok) { score++; box.dataset.ok = '1'; }
+        const v = $('.verdict', box);
+        v.className = 'verdict ' + (right ? 'good' : 'bad');
+        v.innerHTML = (right ? '对了。' : '不对，答案是 ' + esc(d.a) + '。') + ' <span lang="ko">' + esc(d.ko) + '</span>' + (pronOf(d.ko) ? ' ' + pronTag(d.ko) : '');
+      };
+      $('[data-ncheck]', box).onclick = go;
+      inp.onkeydown = e => { if (e.key === 'Enter') go(); };
+    });
+    $$('[data-tq]', body).forEach(box => {
+      const q = t.quiz[+box.dataset.tq];
+      $$('.choice', box).forEach(c => c.onclick = () => {
+        const right = +c.dataset.o === q.a;
+        $$('.choice', box).forEach(x => { x.disabled = true; if (+x.dataset.o === q.a) x.classList.add('right'); });
+        if (!right) c.classList.add('wrong'); else score++;
+        const v = $('.verdict', box);
+        v.className = 'verdict ' + (right ? 'good' : 'bad');
+        v.innerHTML = (right ? '答对了。' : '不对，答案是“' + esc(q.opts[q.a]) + '”。') + (q.why ? ' ' + esc(q.why) : '') +
+          (q.say ? ' <span lang="ko">' + esc(q.say) + '</span>' + (pronOf(q.say) ? ' ' + pronTag(q.say) : '') : '');
+        if (q.say) play(q.say, 'f');
+      });
+    });
     $$('[data-lq]', body).forEach(box => answer(box, listen[+box.dataset.lq], 'zh'));
     $$('[data-rq]', body).forEach(box => answer(box, read[+box.dataset.rq], 'ko'));
     $$('[data-dq]', body).forEach(box => {
@@ -548,7 +607,7 @@
       logAct(); save(); renderNav();
       const nx = TOPICS.find(x => !S.done['t:' + x.id]);
       $('#finish').innerHTML = '<div class="cap md pink pop" lang="ko">' + (first ? '완료!' : '복습 완료!') + '</div>' +
-        '<p>答对了 ' + score + ' / ' + (listen.length + read.length + dict.length) + ' 题。' + (n ? '新加入 ' + n + ' 张复习卡片，明天开始出现。' : '这些词之前已经在复习里了。') + '</p>' +
+        '<p>答对了 ' + score + ' / ' + (listen.length + read.length + dict.length + (t.numDrill || []).length + (t.quiz || []).length) + ' 题。' + (n ? '新加入 ' + n + ' 张复习卡片，明天开始出现。' : '这些词之前已经在复习里了。') + '</p>' +
         '<div class="row" style="justify-content:center;margin-top:16px">' + (nx ? '<a class="btn primary" href="#/t/' + nx.id + '">下一个主题：' + esc(nx.zh) + '</a>' : '') + '<a class="btn" href="#/learn">回到课程</a></div>';
     };
   }

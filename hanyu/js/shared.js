@@ -25,6 +25,10 @@
       const ws = t.groups.reduce((a, g) => a.concat(g.words), []);
       ws.forEach((w, i) => { add(wordSay(w), vx(i)); add(w.ex, vx(i + 1)); add(w.ko, vx(i)); });  // 听写题只读原形
       t.talk.lines.forEach(l => add(l.ko, l.v));
+      let k = 0;
+      (t.lesson || []).forEach(sec => sec.rows.forEach(r => add(r.ko, vx(k++))));
+      (t.numDrill || []).forEach((d, i) => add(d.ko, vx(i)));
+      (t.quiz || []).forEach(q => add(q.say, 'f'));
     });
     // 逐词标注里不在词汇表的实词，点开时会单独朗读
     const vocabKeys = {};

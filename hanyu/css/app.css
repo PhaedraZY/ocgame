@@ -437,6 +437,12 @@ details > summary { cursor: pointer; }
   * { transition: none !important; }
 }
 
+/* 数字讲解 */
+.num-table td.num-a { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--blue); white-space: nowrap; }
+.num-in { max-width: 220px; margin-top: 0; }
+.num-zh-m { display: none; }
+.tlesson + .tlesson { margin-top: 18px; }
+
 /* ---------- 手机 ---------- */
 #tabbar, #more { display: none; }
 @media (max-width: 760px) {
@@ -493,7 +499,10 @@ details > summary { cursor: pointer; }
   .words { grid-template-columns: 1fr; }
   .word { padding: 14px; }
   .gram, .drill, .panel { padding: 18px 16px; }
-  .g-table th:nth-child(3), .g-table td:nth-child(3) { display: none; }
+  .g-table:not(.num-table) th:nth-child(3), .g-table:not(.num-table) td:nth-child(3) { display: none; }
+  .num-table td.num-zh { display: none; }
+  .num-zh-m { display: block; font-size: 13px; color: var(--mute); font-weight: 400; }
+  .num-table td.num-a { font-size: 14px; }
   .g-table td, .g-table th { padding: 8px 6px; }
   .ex-list li { align-items: flex-start; }
   .flash { min-height: 280px; padding: 28px 18px 22px; }
