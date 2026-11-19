@@ -18,7 +18,8 @@
   const CHARS = {
     '서연': ['书妍', '#D9437A'], '민준': ['民俊', '#2456D3'], '하은': ['夏恩', '#C8690F'], '지호': ['志浩', '#12936C'],
     '엄마': ['妈妈', '#8A54D1'], '아빠': ['爸爸', '#5B6B82'], '팀장': ['组长', '#5B6B82'], '의사': ['医生', '#5B6B82'],
-    '직원': ['店员', '#5B6B82'], '점원': ['店员', '#5B6B82'], '약사': ['药剂师', '#5B6B82'], '행인': ['路人', '#5B6B82']
+    '직원': ['店员', '#5B6B82'], '점원': ['店员', '#5B6B82'], '약사': ['药剂师', '#5B6B82'], '행인': ['路人', '#5B6B82'],
+    '민지': ['民智', '#0E8FA8'], 'MC': ['主持人', '#5B6B82'], 'PD': ['导演', '#5B6B82']
   };
 
   // ---------- 逐词标注 ----------
@@ -128,7 +129,7 @@
   const SERVER = !STATIC && location.protocol.indexOf('http') === 0;
   const AUDIO_MAP = STATIC ? window.KSTATIC.audio : null;
   // 同一句只要有任何一种声音的录音就用它（借用别处句子当例句时，声音参数可能不同）
-  const staticUrl = (t, v) => { const k = AUDIO_MAP && (AUDIO_MAP[(v || 'f') + '|' + t] || AUDIO_MAP['f|' + t] || AUDIO_MAP['m|' + t] || AUDIO_MAP['f2|' + t] || AUDIO_MAP['m2|' + t] || AUDIO_MAP['m3|' + t]); return k ? 'audio/' + k + '.mp3' : ''; };
+  const staticUrl = (t, v) => { const k = AUDIO_MAP && (AUDIO_MAP[(v || 'f') + '|' + t] || AUDIO_MAP['f|' + t] || AUDIO_MAP['m|' + t] || AUDIO_MAP['f2|' + t] || AUDIO_MAP['m2|' + t] || AUDIO_MAP['m3|' + t] || AUDIO_MAP['f3|' + t]); return k ? 'audio/' + k + '.mp3' : ''; };
   let curAudio = null, curDone = null, token = 0, koVoice = null, warnedVoice = false;
   function loadVoices() { koVoice = speechSynthesis.getVoices().find(v => (v.lang || '').toLowerCase().indexOf('ko') === 0) || null; }
   if (window.speechSynthesis) { loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
