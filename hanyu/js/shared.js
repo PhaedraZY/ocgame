@@ -19,6 +19,9 @@
       add(x.say, 'f');
       (x.table || []).forEach((r, k) => add(r[2], vx(k)));
       ((x.cmp || {}).rows || []).forEach((c, k) => add(c.ko, vx(k)));
+      // 新讲法：分组里的原形和变形、区别里的对比句，都要能单独听，也要能连着听
+      (x.parts || []).forEach(p => p.rows.forEach(r => { add(r[0], 'f'); add(r[1], 'm'); }));
+      ((x.diff || {}).pairs || []).forEach(pr => pr.slice(0, 2).forEach((c, k) => add(c.ko, vx(k))));
       (x.quiz || []).forEach(q => add(q.say, 'f'));
     }));
     (D.topics || []).forEach(t => {

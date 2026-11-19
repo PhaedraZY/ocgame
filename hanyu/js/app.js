@@ -197,6 +197,7 @@
 
   const ICON = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 1.8v12.4L14 8z"/></svg>';
   const pbtn = (t, v, cls) => '<button class="play ' + (cls || '') + '" data-say="' + esc(t) + '" data-v="' + (v || 'f') + '" title="播放" aria-label="播放">' + ICON + '</button>';
+  const qbtn = (list, label) => '<button class="btn sm g-seq" data-seq="' + esc(JSON.stringify(list)) + '">▶ ' + esc(label) + '</button>';
   const sbtn = (t, v) => '<button class="play slow" data-say="' + esc(t) + '" data-v="' + (v || 'f') + '" data-slow="1" title="慢速播放" aria-label="慢速播放">慢</button>';
 
   // 播放一段歌曲原声，从 start 秒放到 end 秒
@@ -222,6 +223,21 @@
   document.addEventListener('click', e => {
     const cb = e.target.closest('[data-clip]');
     if (cb) { e.preventDefault(); playClip(cb.dataset.clip, +cb.dataset.cs, +cb.dataset.ce, cb); return; }
+    const sq = e.target.closest('[data-seq]');
+    if (sq) {
+      e.preventDefault();
+      if (sq.classList.contains('playing')) { stopAudio(); return; }
+      const list = JSON.parse(sq.dataset.seq), box = sq.closest('.g-part, .g-pair') || sq.parentNode;
+      const btns = $$('.play[data-say]', box);
+      playSeq(list, i => {
+        btns.forEach(x => x.classList.remove('playing'));
+        sq.classList.toggle('playing', i >= 0);
+        if (i < 0) return;
+        const same = btns.filter(x => x.dataset.say === list[i].t), n = list.slice(0, i).filter(c => c.t === list[i].t).length;
+        const hit = same[n] || same[0]; if (hit) hit.classList.add('playing');
+      });
+      return;
+    }
     const b = e.target.closest('[data-say]');
     if (b) { e.preventDefault(); play(b.dataset.say, b.dataset.v, b.dataset.slow ? 0.7 : 0, b); return; }
     const v = e.target.closest('.veil');
@@ -812,6 +828,28 @@
     const exLine = (ko, zh, v, extra) => '<li>' + pbtn(ko, v) + sbtn(ko, v) + '<div class="grow">' + glossLine(ko, '', S.set.inter) +
       (pronOf(ko) ? '<div class="tiny">读作 <span class="pron">[' + esc(pronOf(ko)) + ']</span></div>' : '') +
       '<div class="zh-text">' + esc(zh) + (extra || '') + '</div></div></li>';
+    const NUM = '①②③④⑤⑥';
+    const formHtml = (t, v) => '<span class="g-form">' + pbtn(t, v) + '<b lang="ko">' + esc(t) + '</b>' + (pronOf(t) ? pronTag(t) : '') + '</span>';
+    const partsHtml = !x.parts ? '' : '<h4>分：' + x.parts.length + ' 种情况</h4>' + x.parts.map((pt, pi) => {
+      const seq = []; pt.rows.forEach(r => { if (r[0]) seq.push({ t: r[0], v: 'f' }); seq.push({ t: r[1], v: 'm' }); });
+      return '<div class="g-part"><div class="g-rule"><span class="g-n">' + NUM[pi] + '</span><div class="grow"><b>' + esc(pt.name) + '</b>' + (pt.rule ? '<div class="small muted">' + esc(pt.rule) + '</div>' : '') + '</div>' + qbtn(seq, '听这组') + '</div>' +
+        '<ul class="g-rows">' + pt.rows.map(r => '<li>' + (r[0] ? formHtml(r[0], 'f') + '<span class="g-arrow">→</span>' : '') + formHtml(r[1], 'm') + '<span class="zh-text">' + esc(r[2]) + '</span></li>').join('') + '</ul></div>';
+    }).join('');
+    const d = x.diff;
+    const diffHtml = !d ? '' : '<div class="g-diff"><h4>' + esc(d.t) + '：有什么不一样</h4><p class="g-tip">' + esc(d.tip) + '</p>' +
+      d.pairs.map(pr => '<div class="g-pair">' + pr.slice(0, 2).map((c, k) => '<div class="g-pl' + (c.bad ? ' bad' : '') + '">' + pbtn(c.ko, KS.vx(k)) + '<div class="grow"><div class="ko-text" lang="ko">' + (c.bad ? '<s>' + esc(c.ko) + '</s> <span class="g-x">错</span>' : esc(c.ko)) + (pronOf(c.ko) ? ' ' + pronTag(c.ko) : '') + '</div><div class="zh-text">' + esc(c.zh) + '</div></div></div>').join('') +
+        '<div class="g-pf">' + qbtn(pr.slice(0, 2).map((c, k) => ({ t: c.ko, v: KS.vx(k) })), '连着听') + (pr[2] ? '<span class="small">' + esc(pr[2]) + '</span>' : '') + '</div></div>').join('') +
+      (d.choose ? '<div class="g-choose"><b>怎么选</b><ul>' + d.choose.map(c => '<li>' + esc(c) + '</li>').join('') + '</ul></div>' : '') + '</div>';
+    if (x.sum) return '<section class="gram g-new" id="g-' + ep.id + '-' + gi + '">' +
+      '<div class="g-top"><h3 lang="ko">' + esc(g.name) + '</h3>' +
+      (x.say ? '<span class="g-say">' + pbtn(x.say, 'f') + sbtn(x.say, 'f') + '<span lang="ko">' + esc(x.say) + '</span>' + (pronOf(x.say) ? ' ' + pronTag(x.say) : '') + '</span>' : '') + '</div>' +
+      '<div class="g-sum"><div class="g-sum-k">总</div><div class="grow"><p>' + esc(x.sum) + '</p>' +
+      (x.parts && x.parts.length > 1 ? '<p class="g-sum-list">' + x.parts.map((pt, pi) => '<span>' + NUM[pi] + ' ' + esc(pt.name) + '</span>').join('') + '</p>' : '') + '</div></div>' +
+      partsHtml + diffHtml +
+      '<h4>例句</h4><ul class="ex-list">' + g.examples.map((e, k) => exLine(e.ko, e.zh, KS.vx(k))).join('') + '</ul>' +
+      (hits.length ? '<h4>本集台词里</h4><ul class="ex-list g-hits">' + hits.map(l => exLine(l.ko, l.zh, l.v,
+        '　<span class="tiny" lang="ko">' + esc(l.w) + '</span> <a class="tiny" href="#/e/' + ep.id + '/2">去逐句里听</a>')).join('') + '</ul>' : '') +
+      quizHtml(ep, gi, x) + '</section>';
     return '<section class="gram" id="g-' + ep.id + '-' + gi + '">' +
       '<div class="g-top"><h3 lang="ko">' + esc(g.name) + '</h3>' +
       (x.say ? '<span class="g-say">' + pbtn(x.say, 'f') + sbtn(x.say, 'f') + '<span lang="ko">' + esc(x.say) + '</span>' + (pronOf(x.say) ? ' ' + pronTag(x.say) : '') + '</span>' : '') + '</div>' +
@@ -825,12 +863,15 @@
       '<h4>例句</h4><ul class="ex-list">' + g.examples.map((e, k) => exLine(e.ko, e.zh, KS.vx(k))).join('') + '</ul>' +
       (hits.length ? '<h4>本集台词里</h4><ul class="ex-list g-hits">' + hits.map(l => exLine(l.ko, l.zh, l.v,
         '　<span class="tiny" lang="ko">' + esc(l.w) + '</span> <a class="tiny" href="#/e/' + ep.id + '/2">去逐句里听</a>')).join('') + '</ul>' : '') +
-      (x.quiz ? '<h4>试一试</h4>' + x.quiz.map((q, k) => {
-        const order = shuffle(q.opts.map((o, j) => j)), isKo = s => /[가-힣]/.test(s);
-        return '<div class="q g-q" data-gq="' + ep.id + ':' + gi + ':' + k + '"><div class="qtext"' + (isKo(q.q) ? ' lang="ko"' : '') + '>' + esc(q.q) + '</div>' +
-          '<div class="choices">' + order.map(j => '<button class="choice" data-o="' + j + '"' + (isKo(q.opts[j]) ? ' lang="ko"' : '') + '>' + esc(q.opts[j]) + '</button>').join('') + '</div><div class="verdict"></div></div>';
-      }).join('') : '') +
+      quizHtml(ep, gi, x) +
       '</section>';
+  }
+  function quizHtml(ep, gi, x) {
+    return x.quiz ? '<h4>试一试</h4>' + x.quiz.map((q, k) => {
+      const order = shuffle(q.opts.map((o, j) => j)), isKo = s => /[가-힣]/.test(s);
+      return '<div class="q g-q" data-gq="' + ep.id + ':' + gi + ':' + k + '"><div class="qtext"' + (isKo(q.q) ? ' lang="ko"' : '') + '>' + esc(q.q) + '</div>' +
+        '<div class="choices">' + order.map(j => '<button class="choice" data-o="' + j + '"' + (isKo(q.opts[j]) ? ' lang="ko"' : '') + '>' + esc(q.opts[j]) + '</button>').join('') + '</div><div class="verdict"></div></div>';
+    }).join('') : '';
   }
   // 语法小题和点词：返回 true 表示处理了这次点击
   function gramClick(e) {
@@ -869,7 +910,7 @@
     const all = [];
     EPS.forEach(ep => ep.grammar.forEach((g, gi) => {
       const x = (GX[ep.id] || [])[gi] || {};
-      all.push({ ep: ep, gi: gi, text: [g.name, g.desc, x.core || '', (x.table || []).map(r => r.join(' ')).join(' '), g.examples.map(e => e.ko + e.zh).join(' ')].join(' ').toLowerCase() });
+      all.push({ ep: ep, gi: gi, text: [g.name, g.desc, x.core || '', x.sum || '', (x.parts || []).map(p => p.name + ' ' + p.rows.map(r => r.join(' ')).join(' ')).join(' '), x.diff ? x.diff.t + x.diff.tip : '', (x.table || []).map(r => r.join(' ')).join(' '), g.examples.map(e => e.ko + e.zh).join(' ')].join(' ').toLowerCase() });
     }));
     const draw = () => {
       const rows = all.filter(r => !q || r.text.indexOf(q.toLowerCase()) >= 0);
@@ -879,7 +920,7 @@
         const head = r.ep !== last ? '<h3 class="g-ep"><a href="#/e/' + r.ep.id + '/4">' + epLabel(r.ep) + '</a>　<span lang="ko">' + esc(r.ep.caption) + '</span>　<span class="muted">' + esc(r.ep.title) + '</span></h3>' : '';
         last = r.ep;
         const x = (GX[r.ep.id] || [])[r.gi] || {};
-        return head + '<details class="g-item" data-k="' + r.ep.id + ':' + r.gi + '"><summary><b lang="ko">' + esc(r.ep.grammar[r.gi].name) + '</b><span class="muted small">　' + esc(x.core || r.ep.grammar[r.gi].desc).slice(0, 60) + '…</span></summary><div class="g-body"></div></details>';
+        return head + '<details class="g-item" data-k="' + r.ep.id + ':' + r.gi + '"><summary><b lang="ko">' + esc(r.ep.grammar[r.gi].name) + '</b><span class="muted small">　' + esc(x.sum || x.core || r.ep.grammar[r.gi].desc).slice(0, 60) + '…</span></summary><div class="g-body"></div></details>';
       }).join('') : '<div class="empty">没有找到。换个说法试试，比如只搜一两个字。</div>';
     };
     $('#gq').oninput = e => { q = e.target.value.trim(); draw(); };
