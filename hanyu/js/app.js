@@ -1393,14 +1393,15 @@
       '<button class="btn sm" id="swap">' + (V ? '回到视频库' : '换文件') + '</button></div></div>' +
       (V ? '<div class="song-status" style="margin:0 0 16px"><div><b>大模型精标</b>　<span id="vLlmState">' + (lgN ? '已精标 ' + lgN + ' / ' + lab.cues.length + ' 句' : zhN ? '已翻译 ' + zhN + ' 句，还没有逐词标注' : '还没有精标') + '</span>　<span id="vLlmBtns"></span> <a class="small" href="#/settings">接口设置</a></div><div id="vLlmMsg" class="small" hidden></div>' +
         (V.playNote ? '<div class="unk small">' + esc(V.playNote) + '</div>' : '') + '</div>' : '') +
-      '<div class="lab"><div class="lab-left">' +
+      '<div class="lab' + (S.set.labBig && lab.media ? ' big' : '') + '"><div class="lab-left">' +
       '<div class="stage">' + (lab.media ? '<video id="vid" src="' + lab.media.url + '" preload="auto" playsinline></video>' : '<div class="noplay">没有导入视频。点句子会用合成语音朗读，适合练字幕文本或剧本。</div>') + '</div>' +
       '<div class="sub-box" id="subBox"></div>' +
       '<div class="lab-ctrl"><button class="btn" id="prev">上一句</button><button class="btn primary" id="again">重播这句</button><button class="btn" id="next">下一句</button>' +
       '<button class="btn ' + (lab.loop ? 'on' : '') + '" id="loop">循环本句</button><button class="btn ' + (lab.auto ? 'on' : '') + '" id="auto">逐句暂停</button><button class="btn" id="keep">收藏这句</button></div>' +
       '<div class="lab-ctrl"><span class="small muted">语速</span><div class="seg" id="speed">' + [0.6, 0.75, 0.9, 1].map(r => '<button data-s="' + r + '" class="' + (lab.speed === r ? 'on' : '') + '">' + r + '×</button>').join('') + '</div>' +
       '<span class="small muted" style="margin-left:8px">字幕</span><div class="seg" id="subm">' + [['show', '显示'], ['ko', '遮韩文'], ['none', '全遮']].map(m => '<button data-m="' + m[0] + '" class="' + (lab.sub === m[0] ? 'on' : '') + '">' + m[1] + '</button>').join('') + '</div>' +
-      (lab.cues.some(c => c.g) ? '<button class="btn sm ' + (S.set.inter ? 'on' : '') + '" id="vi">逐词对照</button>' : '') + '</div>' +
+      (lab.cues.some(c => c.g) ? '<button class="btn sm ' + (S.set.inter ? 'on' : '') + '" id="vi">逐词对照</button>' : '') +
+      (lab.media ? '<button class="btn sm ' + (S.set.labBig ? 'on' : '') + '" id="vbig">大画面</button>' : '') + '</div>' +
       '<p class="keys" style="margin-top:12px"><kbd>空格</kbd> 播放或暂停　<kbd>←</kbd> <kbd>→</kbd> 上一句、下一句　<kbd>R</kbd> 重播　<kbd>L</kbd> 循环　<kbd>H</kbd> 切换字幕　<kbd>S</kbd> 收藏。' +
       (lab.cues.some(c => c.g) ? '点字幕里的词看意思和原形。' : '点字幕里的词会打开 Naver 韩中词典。') + (V ? '识别错的句子点“改这句”修改。' : '') + '</p>' +
       '</div><ol class="cues" id="cues">' + lab.cues.map((c, i) => '<li class="cue' + (i === lab.cur ? ' cur' : '') + (S.cards['c:' + c.ko] ? ' saved' : '') + '" data-i="' + i + '">' +
@@ -1491,6 +1492,7 @@
       lab.cues = []; lab.time = 0; labHome();
     };
     const vi = $('#vi'); if (vi) vi.onclick = () => { S.set.inter = !S.set.inter; save(); lab.time = vid ? vid.currentTime : 0; labPlayer(); };
+    const vbig = $('#vbig'); if (vbig) vbig.onclick = () => { S.set.labBig = !S.set.labBig; save(); vbig.classList.toggle('on', S.set.labBig); $('.lab').classList.toggle('big', S.set.labBig); if (S.set.labBig) $('.lab').scrollIntoView({ block: 'start' }); };
     if (V) {
       $('#vDel').onclick = async () => {
         if (!confirm('删除“' + V.title + '”？视频文件和识别结果都会删掉，已加入复习的卡片会保留。')) return;

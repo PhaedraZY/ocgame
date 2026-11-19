@@ -64,8 +64,8 @@ p { margin: 0; }
 .side-foot button { background: #2F3A50; border: 0; color: #fff; border-radius: 999px; padding: 3px 12px; cursor: pointer; font-weight: 600; }
 
 main { flex: 1; min-width: 0; padding: 40px 48px 80px; }
-.wrap { max-width: 860px; }
-.wide { max-width: 1240px; }
+.wrap { max-width: 860px; margin: 0 auto; }
+.wide { max-width: 1240px; margin: 0 auto; }
 
 /* 综艺字幕式标题，全站唯一的“大声”元素 */
 .cap {
@@ -414,6 +414,30 @@ details > summary { cursor: pointer; }
   .lab { grid-template-columns: 1fr; }
   .lab-left { position: static; }
   .cues { max-height: none; }
+  #vbig { display: none; }
+}
+/* 精听工作台：视频占大头；“大画面”时视频独占一行，句子列表放到下面 */
+@media (min-width: 1001px) {
+  .wide { max-width: 1680px; }
+  .stage { max-height: calc(100vh - 300px); }
+  .lab.big { grid-template-columns: 1fr; }
+  .lab.big .lab-left { position: static; }
+  .lab.big .stage { max-height: calc(100vh - 260px); }
+  .lab.big { scroll-margin-top: 12px; }
+  .lab.big .cues { max-height: 60vh; }
+}
+@media (min-width: 1280px) {
+  .lab { grid-template-columns: minmax(0, 2.1fr) minmax(340px, 1fr); }
+}
+/* 大屏：内容加宽并居中，列表分两栏，少留空白 */
+@media (min-width: 1200px) {
+  .wrap { max-width: 1120px; }
+  .ep-list { columns: 2; column-gap: 36px; border-top: 1px solid var(--line); }
+  .ep-list li { break-inside: avoid; }
+  .ep-list a, .ep-list li:last-child a { border-top: 0; border-bottom: 1px solid var(--line); }
+  .pack-items { columns: 2; column-gap: 0; column-rule: 1px solid var(--line); }
+  .pack-items li { break-inside: avoid; border-top: 0; border-bottom: 1px solid var(--line); }
+  .choices { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 }
 @media (max-width: 760px) {
   body { flex-direction: column; }
