@@ -452,7 +452,7 @@
     const foot = (prev, next) => '<div class="step-foot">' + (prev ? '<a class="btn" href="#/t/' + id + '/' + (step - 1) + '">上一步</a>' : '<span></span>') +
       (next ? '<a class="btn primary" href="#/t/' + id + '/' + (step + 1) + '">下一步：' + TSTEPS[step] + '</a>' : '') + '</div>';
     const findWord = x => { const k = ws.findIndex(w => w.ko === (x.lemma || x.ko) || w.f === x.ko); return k >= 0 ? topicCard(t, ws[k], k) : null; };
-    main.onclick = e => glossClick(e, '场景词汇：' + t.zh, findWord);
+    main.onclick = e => { glossClick(e, '场景词汇：' + t.zh, findWord); };  // 不能把返回值交给 onclick：返回 false 会让链接点不动
     STEPFN[step - 1](t, body, foot);
   }
 
@@ -897,7 +897,7 @@
       '<span class="grow tiny">粉色方括号是实际读音，和写法不一样时才标。“慢”按钮放慢播放。例句里的词可以点开看意思。每个语法点最后有两道小题。</span></div>' +
       ep.grammar.map((g, gi) => gramHtml(ep, gi)).join('') + foot(true, true);
     $('#vi').onclick = () => { S.set.inter = !S.set.inter; save(); stopAudio(); stepGrammar(ep, body, foot); };
-    main.onclick = gramClick;
+    main.onclick = e => { gramClick(e); };
   }
 
   // ---------- 语法速查 ----------
@@ -931,7 +931,7 @@
       const b = $('.g-body', d);
       if (!b.innerHTML) { const [id, gi] = d.dataset.k.split(':'); b.innerHTML = gramHtml(EP[id], +gi); }
     }, true);
-    main.onclick = gramClick;
+    main.onclick = e => { gramClick(e); };
     draw();
   }
 
