@@ -19,7 +19,8 @@
     '서연': ['书妍', '#D9437A'], '민준': ['民俊', '#2456D3'], '하은': ['夏恩', '#C8690F'], '지호': ['志浩', '#12936C'],
     '엄마': ['妈妈', '#8A54D1'], '아빠': ['爸爸', '#5B6B82'], '팀장': ['组长', '#5B6B82'], '의사': ['医生', '#5B6B82'],
     '직원': ['店员', '#5B6B82'], '점원': ['店员', '#5B6B82'], '약사': ['药剂师', '#5B6B82'], '행인': ['路人', '#5B6B82'],
-    '민지': ['民智', '#0E8FA8'], 'MC': ['主持人', '#5B6B82'], 'PD': ['导演', '#5B6B82']
+    '민지': ['民智', '#0E8FA8'], 'MC': ['主持人', '#5B6B82'], 'PD': ['导演', '#5B6B82'],
+    '기자': ['记者', '#5B6B82'], '매니저': ['经纪人', '#5B6B82'], '배우': ['演员', '#B0245C'], '팬': ['粉丝', '#5B6B82']
   };
 
   // ---------- 逐词标注 ----------
@@ -390,9 +391,15 @@
         s.episodes.map(e => '<li><a href="#/e/' + e.id + '"><span class="ep-no">' + e.no + '</span><span><span class="ep-ko" lang="ko">' + esc(e.caption) + '</span><br><span class="ep-zh">' + esc(e.title) + '。' + esc(e.goal) + '</span></span>' +
           (S.done[e.id] ? '<span class="tag ok">已学</span>' : nx === e ? '<span class="tag next">下一集</span>' : '<span></span>') + '</a></li>').join('') +
         '</ol></section>').join('') +
-      (TOPICS.length ? '<section class="season-block"><div class="kicker">场景词汇</div><h2>按场景记词</h2><p class="muted">吃的、星期月份、心情、恋爱、职场……按场景把常用词一次学完。每个主题有分组的词、实际读音、例句和一段小对话，不分先后，建议学完第一季第 4 集再开始。</p><ol class="ep-list">' +
-        TOPICS.map((t, i) => '<li><a href="#/t/' + t.id + '"><span class="ep-no">' + (i + 1) + '</span><span><span class="ep-ko" lang="ko">' + esc(t.ko) + '</span><br><span class="ep-zh">' + esc(t.zh) + '，' + topicWords(t).length + ' 个词</span></span>' +
-          (S.done['t:' + t.id] ? '<span class="tag ok">已学</span>' : '<span></span>') + '</a></li>').join('') + '</ol></section>' : '') + '</div>';
+      topicBlock('场景词汇', '按场景记词', '吃的、星期月份、心情、恋爱、职场……按场景把常用词一次学完。每个主题有分组的词、实际读音、例句和一段小对话，不分先后，建议学完第一季第 4 集再开始。', TOPICS.filter(t => t.set !== 'star')) +
+      topicBlock('场景词汇', '明星和娱乐圈', '追星、拍戏、偶像舞台、综艺录制、颁奖典礼、娱乐新闻。看韩剧韩综和刷粉丝圈时天天碰到的词，包括 최애、본방사수、열애설 这类流行说法。剧里的明星都是虚构的。', TOPICS.filter(t => t.set === 'star')) + '</div>';
+  }
+  function topicBlock(kick, h, p, list) {
+    if (!list.length) return '';
+    const no = t => TOPICS.indexOf(t) + 1;
+    return '<section class="season-block"><div class="kicker">' + kick + '</div><h2>' + h + '</h2><p class="muted">' + p + '</p><ol class="ep-list">' +
+      list.map(t => '<li><a href="#/t/' + t.id + '"><span class="ep-no">' + no(t) + '</span><span><span class="ep-ko" lang="ko">' + esc(t.ko) + '</span><br><span class="ep-zh">' + esc(t.zh) + '，' + topicWords(t).length + ' 个词</span></span>' +
+        (S.done['t:' + t.id] ? '<span class="tag ok">已学</span>' : '<span></span>') + '</a></li>').join('') + '</ol></section>';
   }
 
 
