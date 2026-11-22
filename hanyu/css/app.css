@@ -557,7 +557,7 @@ details > summary { cursor: pointer; }
   .words { grid-template-columns: 1fr; }
   .word { padding: 14px; }
   .gram, .drill, .panel { padding: 18px 16px; }
-  .g-table:not(.num-table) th:nth-child(3), .g-table:not(.num-table) td:nth-child(3) { display: none; }
+  .g-table:not(.num-table):not(.b-letters):not(.b-table) th:nth-child(3), .g-table:not(.num-table):not(.b-letters):not(.b-table) td:nth-child(3) { display: none; }
   .num-table td.num-zh { display: none; }
   .num-zh-m { display: block; font-size: 13px; color: var(--mute); font-weight: 400; }
   .num-table td.num-a { font-size: 14px; }
@@ -579,3 +579,138 @@ details > summary { cursor: pointer; }
   .tok:hover { background: none; }
   .play:hover { background: var(--blue-soft); color: var(--blue); }
 }
+
+/* 入门：拼字拆解图 */
+.hb-legend { display: flex; gap: 14px; font-size: 13px; color: var(--mute); margin: 10px 0 4px; }
+.hb-legend i { font-style: normal; display: inline-flex; align-items: center; gap: 5px; }
+.hb-legend i::before { content: ""; width: 12px; height: 12px; border-radius: 3px; }
+.hb-legend .hb-l::before { background: #DCE6FB; } .hb-legend .hb-vw::before { background: #FFF0B3; } .hb-legend .hb-t::before { background: #FBD9E6; }
+.hb-list { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
+.hb { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.hb-box { width: 86px; height: 86px; display: grid; gap: 3px; padding: 4px; border: 2px solid var(--ink); border-radius: 10px; background: var(--panel); }
+.hb-box span { display: grid; place-items: center; border-radius: 6px; font-size: 26px; font-weight: 600; line-height: 1; }
+.hb-box .hb-l { background: #DCE6FB; color: #1F45B5; grid-area: l; }
+.hb-box .hb-vw { background: #FFF0B3; color: #7A5B00; grid-area: v; }
+.hb-box .hb-t { background: #FBD9E6; color: #B0245C; grid-area: t; }
+.hb-v { grid-template: "l v" 1fr / 1fr 1fr; }
+.hb-v.has-t { grid-template: "l v" 1.3fr "t t" 1fr / 1fr 1fr; }
+.hb-h { grid-template: "l" 1fr "v" 1fr / 1fr; }
+.hb-h.has-t { grid-template: "l" 1fr "v" 0.8fr "t" 1fr / 1fr; }
+.hb-m { grid-template: "l v" 1fr / 1fr 1fr; }
+.hb-m.has-t { grid-template: "l v" 1.3fr "t t" 1fr / 1fr 1fr; }
+.hb figcaption { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.hb figcaption b { font-size: 20px; }
+.hb figcaption .play { width: 28px; height: 28px; }
+.hb-sum { font-size: 13px; color: var(--mute); width: 100%; text-align: center; }
+.b-jamo { font-size: 26px; font-weight: 700; color: var(--ink); width: 48px; }
+.b-letters td { vertical-align: middle; }
+.b-set-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.b-set-row .g-form b { font-size: 22px; }
+.b-a { color: var(--ink); font-weight: 600; }
+.b-choices { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)) !important; }
+.b-choices .choice { font-size: 22px; text-align: center; }
+
+/* 入门：拼读总表 */
+.hg-wrap { overflow-x: auto; margin-top: 8px; }
+.hg { border-collapse: collapse; }
+.hg th, .hg td { padding: 2px; text-align: center; }
+.hg-h { border: 0; background: var(--soft); border-radius: 6px; min-width: 38px; height: 38px; font-size: 18px; font-weight: 700; cursor: pointer; color: var(--ink); }
+.hg-h:hover, .hg-h.playing { background: var(--ink); color: #fff; }
+.hg-c { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; min-width: 44px; height: 40px; font-size: 18px; cursor: pointer; color: var(--ink); }
+.hg-c:hover { border-color: var(--blue); }
+.hg-c.playing { background: var(--blue); border-color: var(--blue); color: #fff; }
+@media (max-width: 760px) {
+  .hb-box { width: 70px; height: 70px; }
+  .hb-box span { font-size: 21px; }
+  .hg-c { min-width: 38px; height: 38px; font-size: 16px; }
+}
+@media (max-width: 760px) {
+  /* 字母表在手机上改成两行：字母和读法一行，例词另起一行，“怎么读”不能藏 */
+  .b-letters thead { display: none; }
+  .b-letters tr { display: grid; grid-template-columns: 44px auto 1fr; gap: 2px 8px; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  .b-letters td { border: 0; padding: 0; }
+  .b-letters td:nth-child(3) { grid-column: 3; font-size: 14px; }
+  .b-letters td:nth-child(4) { grid-column: 2 / 4; }
+}
+
+/* 拆字图：from + 字母 → to */
+.mph-list { display: flex; flex-wrap: wrap; gap: 12px 22px; margin: 8px 0 4px; }
+.mph { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.mph .hb-box { width: 62px; height: 62px; }
+.mph .hb-box span { font-size: 19px; }
+.mph .hb figcaption b { font-size: 17px; }
+.mph .hb-sum { display: none; }
+.mph-op { font-size: 18px; color: var(--mute); display: inline-flex; align-items: center; gap: 4px; }
+.mph-op b { display: inline-grid; place-items: center; min-width: 30px; height: 30px; border-radius: 6px; font-size: 18px; }
+.mph-op b.hb-t { background: #FBD9E6; color: #B0245C; }
+.mph-op b.hb-vw { background: #FFF0B3; color: #7A5B00; }
+.mph-note { width: 100%; text-align: center; font-size: 14px; color: var(--mute); }
+
+/* 规则步骤 */
+.g-steps { margin-top: 10px; background: var(--panel); border-radius: 8px; padding: 8px 12px; }
+.g-steps b { font-size: 15px; }
+.g-steps ol { margin: 4px 0 0; padding-left: 22px; }
+.g-steps li { margin: 3px 0; font-size: 16px; }
+
+/* 术语：点开看解释 */
+.term { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: help; border-bottom: 1.5px dotted var(--blue); }
+.term:hover { color: var(--blue); }
+#termPop { position: absolute; z-index: 60; background: var(--ink); color: #fff; border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.55; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+#termPop p { margin: 4px 0 0; color: #DCE2EC; }
+#termPop a { display: inline-block; margin-top: 8px; color: var(--yellow); font-weight: 600; }
+
+/* 拆句子：按角色上色，下面一行是中文语序 */
+.psent { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+.ps-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; margin-top: 8px; }
+.ps-tag { font-size: 12px; color: var(--faint); width: 30px; align-self: center; }
+.ps { display: inline-flex; flex-direction: column; align-items: center; padding: 6px 10px; border-radius: 8px; border: 1.5px solid; min-width: 52px; }
+.ps b { font-size: 19px; font-weight: 600; }
+.ps u { text-decoration: none; background: rgba(255,255,255,.75); border-radius: 4px; padding: 0 2px; box-shadow: inset 0 -2px 0 currentColor; }
+.ps small { font-size: 12px; opacity: .85; margin-top: 2px; white-space: nowrap; }
+.ps-zh .ps b { font-size: 16px; }
+.ps-topic, .ps-subj { background: #DCE6FB; border-color: #8FA8EA; color: #1F45B5; }
+.ps-obj { background: #D8F3E6; border-color: #7FCBA8; color: #0B6B4F; }
+.ps-place, .ps-time { background: #EFE6FA; border-color: #B79BE0; color: #5B2E9E; }
+.ps-verb { background: #FBD9E6; border-color: #EE9BBD; color: #B0245C; }
+.ps-other { background: var(--soft); border-color: var(--line); color: var(--ink); }
+.b-table td { vertical-align: middle; }
+@media (max-width: 760px) {
+  .b-table { font-size: 14px; }
+  .b-table th, .b-table td { padding: 6px 5px; }
+  .b-table .g-form b { font-size: 16px; }
+  .ps { min-width: 0; padding: 5px 7px; }
+  .ps b { font-size: 17px; }
+}
+
+/* 发音规则：写法 → 读音，两串方块对照 */
+.sh-list { display: grid; gap: 10px; margin-top: 8px; }
+.sh { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.sh-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sh-k { font-size: 12px; color: var(--faint); }
+.sh-w { display: inline-flex; gap: 3px; align-items: center; }
+.sh-gap { width: 10px; }
+.sh-arrow { font-size: 20px; color: var(--mute); margin: 0 4px; }
+.hb-box.hb-mini { width: 46px; height: 46px; padding: 2px; gap: 2px; border-width: 1.5px; border-radius: 7px; display: inline-grid; }
+.hb-box.hb-mini span { font-size: 15px; border-radius: 4px; }
+.sh-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.sh-foot b { font-size: 18px; }
+.rq-w { font-size: 26px; }
+@media (max-width: 760px) {
+  .hb-box.hb-mini { width: 38px; height: 38px; }
+  .hb-box.hb-mini span { font-size: 13px; }
+}
+/* 小方块：行高按比例分，横元音带收音时三层都放得下 */
+.hb-box.hb-mini { overflow: hidden; }
+.hb-box.hb-mini.hb-h.has-t { grid-template: "l" 1fr "v" 0.7fr "t" 1fr / 1fr; }
+.hb-box.hb-mini.hb-v.has-t, .hb-box.hb-mini.hb-m.has-t { grid-template: "l v" 1.2fr "t t" 1fr / 1fr 1fr; }
+.hb-box.hb-mini span { min-height: 0; line-height: 1; overflow: hidden; }
+@media (max-width: 760px) {
+  .hb-box.hb-mini { width: 40px; height: 44px; }
+  .hb-box.hb-mini span { font-size: 12px; }
+}
+/* 大方块同理：横元音 + 收音三层时压缩元音那一层，防止溢出 */
+.hb-box span { min-height: 0; overflow: hidden; }
+.hb-h.has-t { grid-template: "l" 1fr "v" 0.7fr "t" 1fr / 1fr; }
+.hb-box.hb-h.has-t span { font-size: 0.8em; }
+.hb-box.hb-h.has-t { font-size: 26px; }
+.mph .hb-box.hb-h.has-t { font-size: 19px; }

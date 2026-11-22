@@ -221,6 +221,24 @@
   const playCard = (c, btn) => c.clip ? playClip(c.clip.url, c.clip.s, c.clip.e, btn) : play(c.say || c.ko, c.v, 0, btn);
 
   document.addEventListener('click', e => {
+    const tb = e.target.closest('.term');
+    const pop = $('#termPop');
+    if (tb) {
+      e.preventDefault();
+      const d = (D.terms || {})[tb.dataset.term];
+      if (!d) return;
+      const box = pop || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'termPop', role: 'dialog' }));
+      box.innerHTML = '<b>' + esc(tb.dataset.term) + '</b><p>' + esc(d.d) + '</p>' + (d.ex ? '<p class="tiny" lang="ko">' + esc(d.ex) + '</p>' : '') +
+        (d.link ? '<a href="' + d.link + '">' + esc(d.lt || '去看讲解') + ' →</a>' : '');
+      const r = tb.getBoundingClientRect(), w = Math.min(300, innerWidth - 24);
+      box.style.width = w + 'px';
+      box.style.left = Math.max(12, Math.min(innerWidth - w - 12, r.left)) + 'px';
+      box.style.top = (r.bottom + scrollY + 6) + 'px';
+      box.hidden = false;
+      return;
+    }
+    if (pop && !pop.hidden && !e.target.closest('#termPop')) pop.hidden = true;
+    if (pop && e.target.closest('#termPop a')) pop.hidden = true;
     const cb = e.target.closest('[data-clip]');
     if (cb) { e.preventDefault(); playClip(cb.dataset.clip, +cb.dataset.cs, +cb.dataset.ce, cb); return; }
     const sq = e.target.closest('[data-seq]');
@@ -262,6 +280,7 @@
     [/^#\/learn$/, viewLearn],
     [/^#\/e\/(\w+)(?:\/(\d))?$/, viewEpisode],
     [/^#\/t\/(\w+)(?:\/(\d))?$/, viewTopic],
+    [/^#\/b\/(\w+)(?:\/(\d))?$/, viewBasic],
     [/^#\/review$/, viewReview],
     [/^#\/packs$/, viewPacks],
     [/^#\/pack\/(\w+)$/, viewPack],
@@ -300,7 +319,7 @@
       .concat(STATIC ? [] : [['#/songs', '歌曲']])
       .concat([['#/grammar', '语法速查'], ['#/rules', '音变速查'], null, ['#/lab', '精听工作台'], ['#/cards', '我的卡片'], ['#/settings', '设置']]);
     const on = href => href === '#/' ? (h === '#/' || h === '#' || h === '') :
-      href === '#/learn' ? (h === href || h.indexOf('#/e/') === 0 || h.indexOf('#/t/') === 0) :
+      href === '#/learn' ? (h === href || h.indexOf('#/e/') === 0 || h.indexOf('#/t/') === 0 || h.indexOf('#/b/') === 0) :
         href === '#/packs' ? (h === href || h.indexOf('#/pack/') === 0) :
           href === '#/songs' ? (h === href || h.indexOf('#/song/') === 0) :
             href === '#/lab' ? (h === href || h.indexOf('#/v/') === 0) : h === href;
@@ -334,7 +353,7 @@
 
   // ---------- 今天 ----------
   function viewToday() {
-    const due = dueIds().length, nx = nextEp(), t = today();
+    const due = dueIds().length, nx = nextEp(), t = today(), nb = nextBasic();
     const doneToday = EPS.some(e => S.done[e.id] && S.done[e.id].d === t);
     const days = [];
     for (let i = 6; i >= 0; i--) days.push(t - i);
@@ -344,6 +363,7 @@
       '<div class="page-head"><div class="cap xl pop" lang="ko">오늘도 한 걸음</div>' +
       '<p class="lede">每天三件事：先复习，再学一集新课，最后用真实的韩剧片段练耳朵。每天三十分钟，比周末突击三小时更有用。</p></div>' +
       '<ol class="today-steps">' +
+      (nb ? '<li><div><h3>入门：' + esc(nb.zh) + '</h3><p class="muted small">' + esc(nb.group.zh) + ' 第 ' + nb.no + ' 课 / 共 ' + nb.group.lessons.length + ' 课。没学过韩文字母，先学完入门再开始第一季。</p></div><a class="btn primary" href="#/b/' + nb.id + '">开始学习</a></li>' : '') +
       '<li class="' + (!due && Object.keys(S.cards).length ? 'done' : '') + '"><div><h3>复习卡片</h3><p class="muted small">' +
       (due ? '有 ' + due + ' 张卡片到期。先听声音，再想意思。' : (Object.keys(S.cards).length ? '今天的复习做完了。' : '学完第一集后，这里会出现要复习的卡片。')) + '</p></div>' +
       (due ? '<a class="btn primary" href="#/review">开始复习</a>' : Object.keys(S.cards).length ? '<span class="tag ok">完成</span>' : '<span></span>') + '</li>' +
@@ -352,7 +372,7 @@
         : '<li class="done"><div><h3>二十集全部学完了</h3><p class="muted small">接下来把时间多放在精听工作台上。</p></div><a class="btn" href="#/learn">回顾课程</a></li>') +
       '<li><div><h3>精听真实片段</h3><p class="muted small">用你自己的韩剧或综艺片段，一句一句听十分钟。</p></div><a class="btn" href="#/lab">打开工作台</a></li>' +
       '</ol>' +
-      '<div class="stats"><div><b>' + Object.keys(S.done).length + ' / ' + EPS.length + '</b>已学集数</div><div><b>' + Object.keys(S.cards).length + '</b>复习卡片</div><div><b>' + streak() + '</b>连续学习天数</div>' +
+      '<div class="stats"><div><b>' + EPS.filter(e => S.done[e.id]).length + ' / ' + EPS.length + '</b>已学集数</div><div><b>' + Object.keys(S.cards).length + '</b>复习卡片</div><div><b>' + streak() + '</b>连续学习天数</div>' +
       '<div>最近七天<div class="week">' + days.map(d => { const n = S.log[d] || 0; const dt = new Date(d * 86400000); return '<span class="' + (n ? 'has' : '') + '" style="height:' + (n ? 12 + 42 * n / max : 6) + 'px" title="' + n + ' 次"><i>' + wd[dt.getUTCDay()] + '</i></span>'; }).join('') + '</div></div></div>' +
       '</div>';
   }
@@ -361,7 +381,11 @@
   function viewLearn() {
     const nx = nextEp();
     main.innerHTML = '<div class="wrap"><div class="page-head"><div class="cap lg pop" lang="ko">드라마로 배우는 한국어</div>' +
-      '<p class="lede">每一集是一段原创的小剧场，人物和故事连贯下去。每集五步：盲听、逐句、词汇、语法、练习。按顺序学，后面的集会用到前面的内容。</p></div>' +
+      '<p class="lede">每一集是一段原创的小剧场，人物和故事连贯下去。每集五步：盲听、逐句、词汇、语法、练习。按顺序学，后面的集会用到前面的内容。没学过韩文字母的话，先学最上面的入门。</p></div>' +
+      BASICS.map(g => '<section class="season-block"><div class="kicker">入门</div><h2>' + esc(g.zh) + '</h2><p class="muted">' + esc(g.intro) + '</p><ol class="ep-list">' +
+        g.lessons.map(l => '<li><a href="#/b/' + l.id + '"><span class="ep-no">' + l.no + '</span><span><span class="ep-ko" lang="ko">' + esc(l.ko) + '</span><br><span class="ep-zh">' + esc(l.zh) + '。' + esc(l.goal) + '</span></span>' +
+          (S.done['b:' + l.id] ? '<span class="tag ok">已学</span>' : nextBasic() === l ? '<span class="tag next">下一课</span>' : '<span></span>') + '</a></li>').join('') +
+        '</ol></section>').join('') +
       D.seasons.map((s, si) => '<section class="season-block"><div class="kicker">' + SEASON_ZH[si] + '</div><h2>' + esc(s.zh) + '</h2><p class="muted">' + esc(s.intro) + '</p><ol class="ep-list">' +
         s.episodes.map(e => '<li><a href="#/e/' + e.id + '"><span class="ep-no">' + e.no + '</span><span><span class="ep-ko" lang="ko">' + esc(e.caption) + '</span><br><span class="ep-zh">' + esc(e.title) + '。' + esc(e.goal) + '</span></span>' +
           (S.done[e.id] ? '<span class="tag ok">已学</span>' : nx === e ? '<span class="tag next">下一集</span>' : '<span></span>') + '</a></li>').join('') +
@@ -369,6 +393,222 @@
       (TOPICS.length ? '<section class="season-block"><div class="kicker">场景词汇</div><h2>按场景记词</h2><p class="muted">吃的、星期月份、心情、恋爱、职场……按场景把常用词一次学完。每个主题有分组的词、实际读音、例句和一段小对话，不分先后，建议学完第一季第 4 集再开始。</p><ol class="ep-list">' +
         TOPICS.map((t, i) => '<li><a href="#/t/' + t.id + '"><span class="ep-no">' + (i + 1) + '</span><span><span class="ep-ko" lang="ko">' + esc(t.ko) + '</span><br><span class="ep-zh">' + esc(t.zh) + '，' + topicWords(t).length + ' 个词</span></span>' +
           (S.done['t:' + t.id] ? '<span class="tag ok">已学</span>' : '<span></span>') + '</a></li>').join('') + '</ol></section>' : '') + '</div>';
+  }
+
+
+  // ---------- 入门：四十音等基础课 ----------
+  const BASICS = D.basics || [];
+  const BLESSONS = [];
+  BASICS.forEach(g => g.lessons.forEach((l, i) => { l.group = g; l.no = i + 1; BLESSONS.push(l); }));
+  const BL = Object.fromEntries(BLESSONS.map(l => [l.id, l]));
+  const nextBasic = () => BLESSONS.find(l => !S.done['b:' + l.id]);
+  const isKoSyl = x => /[가-힣]/.test(x);
+
+  // 拼字拆解：把一个韩文字拆成开头辅音、元音、收音，按真实的位置画出来
+  const HJ = {
+    L: 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'.split(''),
+    V: 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ'.split(''),
+    T: ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
+  };
+  const hSplit = ch => {
+    const c = ch.charCodeAt(0) - 0xAC00;
+    if (c < 0 || c > 11171) return null;
+    return { l: HJ.L[Math.floor(c / 588)], v: HJ.V[Math.floor((c % 588) / 28)], t: HJ.T[c % 28] };
+  };
+  const hJoin = (l, v, t) => String.fromCharCode(0xAC00 + (HJ.L.indexOf(l) * 21 + HJ.V.indexOf(v)) * 28 + HJ.T.indexOf(t || ''));
+  function blockHtml(ch, opt) {
+    const p = hSplit(ch);
+    if (!p) return '';
+    if (opt && opt.mini) {
+      const d = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅣ'.indexOf(p.v) >= 0 ? 'hb-v' : 'ㅗㅛㅜㅠㅡ'.indexOf(p.v) >= 0 ? 'hb-h' : 'hb-m';
+      return '<span class="hb-box hb-mini ' + d + (p.t ? ' has-t' : '') + '" title="' + ch + '"><span class="hb-l">' + p.l + '</span><span class="hb-vw">' + p.v + '</span>' + (p.t ? '<span class="hb-t">' + p.t + '</span>' : '') + '</span>';
+    }
+    const dir = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅣ'.indexOf(p.v) >= 0 ? 'hb-v' : 'ㅗㅛㅜㅠㅡ'.indexOf(p.v) >= 0 ? 'hb-h' : 'hb-m';
+    return '<figure class="hb">' +
+      '<div class="hb-box ' + dir + (p.t ? ' has-t' : '') + '" aria-hidden="true"><span class="hb-l">' + p.l + '</span><span class="hb-vw">' + p.v + '</span>' + (p.t ? '<span class="hb-t">' + p.t + '</span>' : '') + '</div>' +
+      '<figcaption>' + pbtn(ch, 'f') + '<b lang="ko">' + ch + '</b><span class="hb-sum">' + p.l + ' + ' + p.v + (p.t ? ' + ' + p.t : '') + '</span>' + (opt && opt.note ? '<span class="tiny">' + esc(opt.note) + '</span>' : '') + '</figcaption></figure>';
+  }
+  // 拆字图：from + 字母 → to，两个字都画成方块
+  const morphHtml = list => '<div class="mph-list">' + list.map(m => '<div class="mph">' + blockHtml(m.from) +
+    '<span class="mph-op">+ <b class="' + (HJ.V.indexOf(m.add) >= 0 ? 'hb-vw' : 'hb-t') + '">' + esc(m.add) + '</b> →</span>' + blockHtml(m.to) +
+    (m.note ? '<div class="mph-note" lang="ko">' + esc(m.note) + '</div>' : '') + '</div>').join('') + '</div>';
+  // 拆句子：每块按角色上色，助词单独标出；下面一行按中文语序重排，颜色不变
+  const ROLE = { topic: '话题', subj: '主语', obj: '宾语', place: '地点', time: '时间', verb: '动词·句尾', other: '其他' };
+  const parseHtml = x => {
+    const blk = (pt, zh) => '<span class="ps ps-' + pt[2] + '"><b lang="ko">' + (pt[3] && !zh ? esc(pt[0].slice(0, pt[0].length - pt[3].length)) + '<u>' + esc(pt[3]) + '</u>' : esc(zh ? pt[1] : pt[0])) + '</b>' +
+      '<small>' + (zh ? '' : esc(pt[1]) + ' · ') + ROLE[pt[2]] + (pt[3] && !zh ? ' · 助词 ' + esc(pt[3]) : '') + '</small></span>';
+    const order = x.zhOrder || x.parts.map((q, i) => i);
+    return '<div class="psent"><div class="row">' + pbtn(x.ko, 'f') + sbtn(x.ko, 'f') + '<span class="small muted">' + esc(x.zh) + '</span></div>' +
+      '<div class="ps-line"><span class="ps-tag">韩语</span>' + x.parts.map(q => blk(q)).join('') + '</div>' +
+      '<div class="ps-line ps-zh"><span class="ps-tag">中文</span>' + order.map(i => blk(x.parts[i], true)).join('') + '</div></div>';
+  };
+  const wordBlocks = w => '<span class="sh-w">' + Array.from(w.replace(/[.?!,]/g, '')).map(ch => ch === ' ' ? '<span class="sh-gap"></span>' : blockHtml(ch, { mini: true })).join('') + '</span>';
+  const shiftHtml = list => '<div class="sh-list">' + list.map(r => '<div class="sh">' +
+    '<div class="sh-row"><span class="sh-k">写法</span>' + wordBlocks(r[0]) + '<span class="sh-arrow">→</span><span class="sh-k">读音</span>' + wordBlocks(r[1]) + '</div>' +
+    '<div class="sh-foot">' + pbtn(r[0], 'f') + '<b lang="ko">' + esc(r[0]) + '</b> <span class="pron">[' + esc(r[1]) + ']</span><span class="muted small">' + esc(r[2]) + '</span>' +
+    qbtn([{ t: r[0], v: 'f' }, { t: r[1], v: 'f' }], '写法、读音连着听') + '</div></div>').join('') + '</div>';
+  const cellHtml = c => c && typeof c === 'object' ? '<span class="g-form">' + pbtn(c.ko, 'f') + '<b lang="ko">' + esc(c.ko) + '</b></span>' :
+    /^\[[가-힣 ]+\]$/.test(c) ? '<span class="pron">' + esc(c) + '</span>' : esc(c);
+  const TERMS = D.terms || {};
+  const TERM_RE = Object.keys(TERMS).length ? new RegExp('(' + Object.keys(TERMS).sort((a, b) => b.length - a.length).join('|') + ')', 'g') : null;
+  const termify = html => TERM_RE ? html.replace(TERM_RE, m => '<button type="button" class="term" data-term="' + m + '">' + m + '</button>') : html;
+  const prTag = (ko, pr) => pr && pr !== ko.replace(/[.?!]/g, '') ? '<span class="pron">[' + esc(pr) + ']</span>' : '';
+
+  function basicSec(sec, k0) {
+    let h = '<section class="gram blesson"><h3>' + esc(sec.h) + '</h3><p class="g-core">' + esc(sec.p) + '</p>';
+    if (sec.blocks) h += '<div class="hb-legend"><i class="hb-l">辅音</i><i class="hb-vw">元音</i><i class="hb-t">收音</i></div><div class="hb-list">' + sec.blocks.map(c => blockHtml(c)).join('') + '</div>';
+    if (sec.letters) h += '<div class="g-table-wrap"><table class="g-table b-letters"><thead><tr><th>字母</th><th>听一听</th><th>怎么读</th><th>例词</th></tr></thead><tbody>' +
+      sec.letters.map(r => '<tr><td class="b-jamo">' + r[0] + '</td><td><span class="g-form">' + pbtn(r[1], 'f') + '<b lang="ko">' + esc(r[1]) + '</b></span></td><td class="muted">' + esc(r[2]) + '</td>' +
+        '<td><span class="g-form">' + pbtn(r[3], 'f') + '<b lang="ko">' + esc(r[3]) + '</b></span> <span class="muted small">' + esc(r[4]) + '</span></td></tr>').join('') + '</tbody></table></div>' +
+      '<div class="row" style="margin-top:10px">' + qbtn(sec.letters.map(r => ({ t: r[1], v: 'f' })), '按顺序听一遍') + '</div>';
+    if (sec.sets) h += sec.sets.map(set => {
+      const ko = set.filter(isKoSyl), note = set.filter(x => !isKoSyl(x)).join(' ');
+      return '<div class="g-part b-set"><div class="b-set-row">' + ko.map(t => '<span class="g-form">' + pbtn(t, 'f') + '<b lang="ko">' + esc(t) + '</b></span>').join('<span class="g-arrow">·</span>') + '</div>' +
+        '<div class="g-pf">' + qbtn(ko.map(t => ({ t: t, v: 'f' })), '连着听') + (note ? '<span class="small">' + esc(note) + '</span>' : '') + '</div></div>';
+    }).join('');
+    if (sec.rows) h += '<ul class="ex-list b-rows">' + sec.rows.map(r => '<li>' + pbtn(r[1], 'f') + sbtn(r[1], 'f') + '<div class="grow"><div class="ko-text" lang="ko">' + esc(r[1]) + ' ' + prTag(r[1], r[3]) + '</div>' +
+      '<div class="zh-text">' + (r[0] ? '<b class="b-a">' + esc(r[0]) + '</b>　' : '') + esc(r[2]) + '</div></div></li>').join('') + '</ul>' +
+      '<div class="row" style="margin-top:10px">' + qbtn(sec.rows.map(r => ({ t: r[1], v: 'f' })), '连着听这一节') + '</div>';
+    if (sec.parse) h += sec.parse.map(parseHtml).join('');
+    if (sec.table) h += '<div class="g-table-wrap"><table class="g-table b-table"><thead><tr>' + sec.table.head.map(x => '<th>' + esc(x) + '</th>').join('') + '</tr></thead><tbody>' +
+      sec.table.rows.map(r => '<tr>' + r.map(c => '<td>' + cellHtml(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+    if (sec.morph) h += morphHtml(sec.morph);
+    if (sec.shift) h += shiftHtml(sec.shift);
+    if (sec.grid) h += '<div id="hgrid"></div>';
+    if (sec.tip) h += '<p class="note" style="margin-top:12px">' + esc(sec.tip) + '</p>';
+    return h + '</section>';
+  }
+  // 拼读总表：点格子读这个字，点行头、列头连着读一整行、一整列
+  function drawGrid(box, which) {
+    const G = D.hangulGrid, vs = G[which];
+    box.innerHTML = '<div class="toolbar"><div class="seg" id="gtab"><button data-w="basic" class="' + (which === 'basic' ? 'on' : '') + '">基本元音</button><button data-w="compound" class="' + (which === 'compound' ? 'on' : '') + '">复合元音</button></div>' +
+      '<span class="grow tiny">点格子听这个字，点最左边的辅音或最上面的元音，整行、整列连着读。</span></div>' +
+      '<div class="hg-wrap"><table class="hg"><thead><tr><th></th>' + vs.map(v => '<th><button class="hg-h" data-col="' + v + '">' + v + '</button></th>').join('') + '</tr></thead><tbody>' +
+      G.cons.map(c => '<tr><th><button class="hg-h" data-row="' + c + '">' + c + '</button></th>' + vs.map(v => { const s = hJoin(c, v); return '<td><button class="hg-c" data-say="' + s + '" data-v="f" lang="ko">' + s + '</button></td>'; }).join('') + '</tr>').join('') +
+      '</tbody></table></div>';
+    $$('#gtab button', box).forEach(b => b.onclick = () => drawGrid(box, b.dataset.w));
+    $$('.hg-h', box).forEach(b => b.onclick = () => {
+      const cells = b.dataset.row ? $$('[data-say]', b.closest('tr')) : $$('.hg-c', box).filter(x => hSplit(x.dataset.say).v === b.dataset.col);
+      $$('.hg-h.playing', box).forEach(x => x.classList.remove('playing'));
+      b.classList.add('playing');
+      playSeq(cells.map(x => ({ t: x.dataset.say, v: 'f' })), i => { cells.forEach((x, j) => x.classList.toggle('playing', j === i)); if (i < 0) b.classList.remove('playing'); });
+    });
+  }
+
+  function viewBasic(id, step) {
+    const l = BL[id];
+    if (!l) { location.hash = '#/learn'; return; }
+    step = Math.min(2, Math.max(1, +step || 1));
+    const NAMES = ['讲解', '练习'], g = l.group;
+    main.innerHTML = '<div class="wrap"><div class="ep-head"><div class="kicker"><a href="#/learn">课程</a>　入门 · ' + esc(g.zh) + ' 第 ' + l.no + ' 课</div>' +
+      '<div class="cap lg pop" lang="ko">' + esc(l.ko) + '</div><h1>' + esc(l.zh) + '</h1><p class="muted">' + esc(l.goal) + '</p></div>' +
+      '<div class="steps" role="tablist">' + NAMES.map((n, i) => '<button role="tab" aria-selected="' + (i + 1 === step) + '" class="' + (i + 1 === step ? 'on' : '') + '" data-step="' + (i + 1) + '"><b>' + (i + 1) + '</b>' + n + '</button>').join('') + '</div>' +
+      '<div id="stepBody"></div></div>';
+    $$('.steps button').forEach(b => b.onclick = () => { location.hash = '#/b/' + id + '/' + b.dataset.step; });
+    const body = $('#stepBody');
+    const prevL = BLESSONS[BLESSONS.indexOf(l) - 1];
+    if (step === 1) {
+      body.innerHTML = '<p class="tiny" style="margin-bottom:12px">每个韩文都能点播放。“连着听”按顺序读一组，方便对比。粉色方括号是实际读音，和写法不一样时才标。</p>' +
+        l.secs.map(basicSec).join('') +
+        '<div class="step-foot">' + (prevL ? '<a class="btn" href="#/b/' + prevL.id + '">上一课</a>' : '<span></span>') + '<a class="btn primary" href="#/b/' + id + '/2">下一步：练习</a></div>';
+      const gb = $('#hgrid', body);
+      if (gb) drawGrid(gb, 'basic');
+      return;
+    }
+    basicPractice(l, body);
+  }
+
+  function basicPractice(l, body) {
+    const LS = l.listen || [], N = Math.min(10, LS.length * 2), ORD = l.order || [], RQ = (l.readq || []).map(r => ({ w: r[0], zh: r[1], a: r[2], opts: shuffle(r.slice(2)) }));
+    let qs = [];
+    for (let i = 0; i < N; i++) { const set = LS[i % LS.length]; qs.push({ set: shuffle(set), t: set[Math.floor(Math.random() * set.length)] }); }
+    qs = shuffle(qs);
+    let score = 0;
+    body.innerHTML = (qs.length ? '<section class="drill"><h3>听音选字</h3><p class="tiny">点播放听一遍（可以多听几遍），再选听到的是哪个。</p>' +
+      qs.map((q, n) => '<div class="q" data-bq="' + n + '"><div class="row">' + pbtn(q.t, 'f') + sbtn(q.t, 'f') + '<span class="muted small">第 ' + (n + 1) + ' 题</span></div>' +
+        '<div class="choices b-choices">' + q.set.map(x => '<button class="choice" lang="ko" data-x="' + esc(x) + '">' + esc(x) + '</button>').join('') + '</div><div class="verdict"></div></div>').join('') + '</section>' : '') +
+      (RQ.length ? '<section class="drill"><h3>看写法，选实际读音</h3><p class="tiny">先自己想想这个词读出来是什么样，选完会播放。</p>' +
+        RQ.map((q, n) => '<div class="q" data-br="' + n + '"><div class="qtext"><b lang="ko" class="rq-w">' + esc(q.w) + '</b> <span class="muted small">' + esc(q.zh) + '</span></div>' +
+          '<div class="choices b-choices">' + q.opts.map(o => '<button class="choice" lang="ko" data-x="' + esc(o) + '">[' + esc(o) + ']</button>').join('') + '</div><div class="verdict"></div></div>').join('') + '</section>' : '') +
+      (ORD.length ? '<section class="drill"><h3>排语序</h3><p class="tiny">按韩语的顺序点词块，组成和中文意思一样的句子。点上面已选的词块可以放回去。</p>' +
+        ORD.map((o, n) => '<div class="q" data-bo="' + n + '"><div class="qtext">' + esc(o.zh) + '</div><div class="tiles answer"></div><div class="tiles pool">' +
+          shuffle(o.chunks.map((c, i) => i)).map(i => '<button class="tile" lang="ko" data-i="' + i + '">' + esc(o.chunks[i]) + '</button>').join('') + '</div>' +
+          '<div class="row" style="margin-top:8px"><button class="btn sm" data-ocheck>检查</button><button class="btn sm" data-oreset>重来</button></div><div class="verdict"></div></div>').join('') + '</section>' : '') +
+      '<section class="drill"><h3>选一选</h3>' + l.quiz.map((q, n) => {
+        const order = shuffle(q.opts.map((o, j) => j));
+        return '<div class="q" data-bz="' + n + '"><div class="qtext">' + esc(q.q) + '</div><div class="choices">' +
+          order.map(j => '<button class="choice" data-o="' + j + '"' + (isKoSyl(q.opts[j]) ? ' lang="ko"' : '') + '>' + esc(q.opts[j]) + '</button>').join('') + '</div><div class="verdict"></div></div>';
+      }).join('') + '</section>' +
+      '<div class="finish" id="finish"><button class="btn primary big" id="done">完成这一课</button></div>' +
+      '<div class="step-foot"><a class="btn" href="#/b/' + l.id + '/1">上一步</a><span></span></div>';
+    $$('[data-bq]', body).forEach(box => {
+      const q = qs[+box.dataset.bq];
+      $$('.choice', box).forEach(c => c.onclick = () => {
+        const right = c.dataset.x === q.t;
+        $$('.choice', box).forEach(x => { x.disabled = true; if (x.dataset.x === q.t) x.classList.add('right'); });
+        if (!right) c.classList.add('wrong'); else score++;
+        const v = $('.verdict', box);
+        v.className = 'verdict ' + (right ? 'good' : 'bad');
+        v.innerHTML = (right ? '答对了。' : '不对，读的是 <b lang="ko">' + esc(q.t) + '</b>，你选的是 <b lang="ko">' + esc(c.dataset.x) + '</b>。') + ' ' +
+          qbtn(right ? [{ t: q.t, v: 'f' }] : [{ t: q.t, v: 'f' }, { t: c.dataset.x, v: 'f' }], right ? '再听一遍' : '两个连着听');
+      });
+    });
+    $$('[data-br]', body).forEach(box => {
+      const q = RQ[+box.dataset.br];
+      $$('.choice', box).forEach(c => c.onclick = () => {
+        const right = c.dataset.x === q.a;
+        $$('.choice', box).forEach(x => { x.disabled = true; if (x.dataset.x === q.a) x.classList.add('right'); });
+        if (!right) c.classList.add('wrong'); else score++;
+        const v = $('.verdict', box);
+        v.className = 'verdict ' + (right ? 'good' : 'bad');
+        v.innerHTML = (right ? '答对了。' : '不对。') + '<b lang="ko">' + esc(q.w) + '</b> 读 <span class="pron">[' + esc(q.a) + ']</span>。' + qbtn([{ t: q.w, v: 'f' }], '再听一遍');
+        play(q.w, 'f');
+      });
+    });
+    $$('[data-bo]', body).forEach(box => {
+      const o = ORD[+box.dataset.bo], ans = $('.answer', box), pool = $('.pool', box);
+      let picked = [], done = false;
+      const draw = () => {
+        ans.innerHTML = picked.map(i => '<button class="tile" lang="ko" data-i="' + i + '">' + esc(o.chunks[i]) + '</button>').join('');
+        $$('.tile', pool).forEach(t => t.classList.toggle('used', picked.indexOf(+t.dataset.i) >= 0));
+      };
+      pool.onclick = e => { const t = e.target.closest('.tile'); if (!t || done || t.classList.contains('used')) return; picked.push(+t.dataset.i); draw(); };
+      ans.onclick = e => { const t = e.target.closest('.tile'); if (!t || done) return; picked = picked.filter(i => i !== +t.dataset.i); draw(); };
+      $('[data-oreset]', box).onclick = () => { if (done) return; picked = []; draw(); };
+      $('[data-ocheck]', box).onclick = () => {
+        if (done) return;
+        if (picked.length < o.chunks.length) { toast('还有词块没放进去。'); return; }
+        const last = o.chunks.length - 1, exact = picked.every((i, k) => i === k), right = picked[last] === last;
+        done = true; if (right) score++;
+        const std = o.chunks.join(' ');
+        const v = $('.verdict', box);
+        v.className = 'verdict ' + (right ? 'good' : 'bad');
+        v.innerHTML = (exact ? '完全正确。' : right ? '对了：动词在最后就行，助词已经标明了谁做什么。最常见的说法是：' : '不对，动词要放在最后。正确的是：') +
+          (exact ? '' : '<b lang="ko">' + esc(std) + '</b>') + ' ' + qbtn([{ t: std, v: 'f' }], '听一遍');
+        play(std, 'f');
+      };
+    });
+    $$('[data-bz]', body).forEach(box => {
+      const q = l.quiz[+box.dataset.bz];
+      $$('.choice', box).forEach(c => c.onclick = () => {
+        const right = +c.dataset.o === q.a;
+        $$('.choice', box).forEach(x => { x.disabled = true; if (+x.dataset.o === q.a) x.classList.add('right'); });
+        if (!right) c.classList.add('wrong'); else score++;
+        const v = $('.verdict', box);
+        v.className = 'verdict ' + (right ? 'good' : 'bad');
+        v.innerHTML = (right ? '答对了。' : '不对，答案是“' + esc(q.opts[q.a]) + '”。') + (q.why ? ' ' + esc(q.why) : '');
+        if (q.say) play(q.say, 'f');
+      });
+    });
+    $('#done').onclick = () => {
+      const first = !S.done['b:' + l.id];
+      S.done['b:' + l.id] = { d: today(), score: score };
+      logAct(); save(); renderNav();
+      const nx = nextBasic();
+      $('#finish').innerHTML = '<div class="cap md pink pop" lang="ko">' + (first ? '완료!' : '복습 완료!') + '</div>' +
+        '<p>答对了 ' + score + ' / ' + (qs.length + RQ.length + ORD.length + l.quiz.length) + ' 题。' + (score < (qs.length + RQ.length + ORD.length + l.quiz.length) * 0.7 ? '错得多的话，回到讲解里再看一遍、把“连着听”多放几遍。' : '') + '</p>' +
+        '<div class="row" style="justify-content:center;margin-top:16px">' + (nx ? '<a class="btn primary" href="#/b/' + nx.id + '">下一课：' + esc(nx.zh) + '</a>' : '<a class="btn primary" href="#/e/s1e01">入门学完了，开始第一季</a>') + '<a class="btn" href="#/learn">回到课程</a></div>';
+    };
   }
 
   // ---------- 场景词汇 ----------
@@ -828,23 +1068,25 @@
     const exLine = (ko, zh, v, extra) => '<li>' + pbtn(ko, v) + sbtn(ko, v) + '<div class="grow">' + glossLine(ko, '', S.set.inter) +
       (pronOf(ko) ? '<div class="tiny">读作 <span class="pron">[' + esc(pronOf(ko)) + ']</span></div>' : '') +
       '<div class="zh-text">' + esc(zh) + (extra || '') + '</div></div></li>';
-    const NUM = '①②③④⑤⑥';
+    const NUM = '①②③④⑤⑥', T = termify;
     const formHtml = (t, v) => '<span class="g-form">' + pbtn(t, v) + '<b lang="ko">' + esc(t) + '</b>' + (pronOf(t) ? pronTag(t) : '') + '</span>';
-    const partsHtml = !x.parts ? '' : '<h4>分：' + x.parts.length + ' 种情况</h4>' + x.parts.map((pt, pi) => {
+    const partsHtml = !x.parts ? '' : '<h4>分：' + (x.steps && x.parts.length > 1 ? '规则都一样，按样子分成 ' + x.parts.length + ' 组例子' : x.parts.length + ' 种情况') + '</h4>' + x.parts.map((pt, pi) => {
       const seq = []; pt.rows.forEach(r => { if (r[0]) seq.push({ t: r[0], v: 'f' }); seq.push({ t: r[1], v: 'm' }); });
-      return '<div class="g-part"><div class="g-rule"><span class="g-n">' + NUM[pi] + '</span><div class="grow"><b>' + esc(pt.name) + '</b>' + (pt.rule ? '<div class="small muted">' + esc(pt.rule) + '</div>' : '') + '</div>' + qbtn(seq, '听这组') + '</div>' +
+      return '<div class="g-part"><div class="g-rule"><span class="g-n">' + NUM[pi] + '</span><div class="grow"><b>' + T(esc(pt.name)) + '</b>' + (pt.rule ? '<div class="small muted">' + T(esc(pt.rule)) + '</div>' : '') + '</div>' + qbtn(seq, '听这组') + '</div>' +
         '<ul class="g-rows">' + pt.rows.map(r => '<li>' + (r[0] ? formHtml(r[0], 'f') + '<span class="g-arrow">→</span>' : '') + formHtml(r[1], 'm') + '<span class="zh-text">' + esc(r[2]) + '</span></li>').join('') + '</ul></div>';
     }).join('');
     const d = x.diff;
-    const diffHtml = !d ? '' : '<div class="g-diff"><h4>' + esc(d.t) + '：有什么不一样</h4><p class="g-tip">' + esc(d.tip) + '</p>' +
+    const diffHtml = !d ? '' : '<div class="g-diff"><h4>' + esc(d.t) + '：有什么不一样</h4><p class="g-tip">' + T(esc(d.tip)) + '</p>' +
       d.pairs.map(pr => '<div class="g-pair">' + pr.slice(0, 2).map((c, k) => '<div class="g-pl' + (c.bad ? ' bad' : '') + '">' + pbtn(c.ko, KS.vx(k)) + '<div class="grow"><div class="ko-text" lang="ko">' + (c.bad ? '<s>' + esc(c.ko) + '</s> <span class="g-x">错</span>' : esc(c.ko)) + (pronOf(c.ko) ? ' ' + pronTag(c.ko) : '') + '</div><div class="zh-text">' + esc(c.zh) + '</div></div></div>').join('') +
         '<div class="g-pf">' + qbtn(pr.slice(0, 2).map((c, k) => ({ t: c.ko, v: KS.vx(k) })), '连着听') + (pr[2] ? '<span class="small">' + esc(pr[2]) + '</span>' : '') + '</div></div>').join('') +
-      (d.choose ? '<div class="g-choose"><b>怎么选</b><ul>' + d.choose.map(c => '<li>' + esc(c) + '</li>').join('') + '</ul></div>' : '') + '</div>';
+      (d.choose ? '<div class="g-choose"><b>怎么选</b><ul>' + d.choose.map(c => '<li>' + T(esc(c)) + '</li>').join('') + '</ul></div>' : '') + '</div>';
     if (x.sum) return '<section class="gram g-new" id="g-' + ep.id + '-' + gi + '">' +
       '<div class="g-top"><h3 lang="ko">' + esc(g.name) + '</h3>' +
       (x.say ? '<span class="g-say">' + pbtn(x.say, 'f') + sbtn(x.say, 'f') + '<span lang="ko">' + esc(x.say) + '</span>' + (pronOf(x.say) ? ' ' + pronTag(x.say) : '') + '</span>' : '') + '</div>' +
-      '<div class="g-sum"><div class="g-sum-k">总</div><div class="grow"><p>' + esc(x.sum) + '</p>' +
-      (x.parts && x.parts.length > 1 ? '<p class="g-sum-list">' + x.parts.map((pt, pi) => '<span>' + NUM[pi] + ' ' + esc(pt.name) + '</span>').join('') + '</p>' : '') + '</div></div>' +
+      '<div class="g-sum"><div class="g-sum-k">总</div><div class="grow"><p>' + T(esc(x.sum)) + '</p>' +
+      (x.steps ? '<div class="g-steps"><b>' + (x.steps.length > 1 ? '规则只有一条，分 ' + x.steps.length + ' 步：' : '规则：') + '</b><ol>' + x.steps.map(st => '<li>' + T(esc(st.replace(/^第\s*\d+\s*步[：:]\s*/, ''))) + '</li>').join('') + '</ol></div>' : '') +
+      (x.parts && x.parts.length > 1 && !x.steps ? '<p class="g-sum-list">' + x.parts.map((pt, pi) => '<span>' + NUM[pi] + ' ' + esc(pt.name) + '</span>').join('') + '</p>' : '') + '</div></div>' +
+      (x.morph ? '<h4>看字怎么变</h4><p class="tiny">蓝色是开头的辅音，黄色是元音，粉色是收音（写在底下的辅音）。点 ▶ 听变化前后。</p>' + morphHtml(x.morph) : '') +
       partsHtml + diffHtml +
       '<h4>例句</h4><ul class="ex-list">' + g.examples.map((e, k) => exLine(e.ko, e.zh, KS.vx(k))).join('') + '</ul>' +
       (hits.length ? '<h4>本集台词里</h4><ul class="ex-list g-hits">' + hits.map(l => exLine(l.ko, l.zh, l.v,
@@ -853,8 +1095,8 @@
     return '<section class="gram" id="g-' + ep.id + '-' + gi + '">' +
       '<div class="g-top"><h3 lang="ko">' + esc(g.name) + '</h3>' +
       (x.say ? '<span class="g-say">' + pbtn(x.say, 'f') + sbtn(x.say, 'f') + '<span lang="ko">' + esc(x.say) + '</span>' + (pronOf(x.say) ? ' ' + pronTag(x.say) : '') + '</span>' : '') + '</div>' +
-      (x.core ? '<p class="g-core">' + esc(x.core) + '</p>' : '') +
-      '<p class="g-desc">' + esc(g.desc) + '</p>' +
+      (x.core ? '<p class="g-core">' + termify(esc(x.core)) + '</p>' : '') +
+      '<p class="g-desc">' + termify(esc(g.desc)) + '</p>' +
       (g.points ? '<ul class="points">' + g.points.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>' : '') +
       (x.table ? '<h4>怎么变</h4><div class="g-table-wrap"><table class="g-table"><thead><tr><th></th><th>原来</th><th>怎么变</th><th>结果和实际读音</th><th>意思</th></tr></thead><tbody>' +
         x.table.map((r, k) => '<tr><td>' + pbtn(r[2], KS.vx(k)) + '</td><td lang="ko">' + esc(r[0]) + '</td><td class="muted">' + esc(r[1]) + '</td>' +
@@ -1141,7 +1383,7 @@
   }
 
   function viewRules() {
-    main.innerHTML = '<div class="wrap"><div class="page-head"><div class="cap lg pop" lang="ko">발음 규칙</div><h1 style="margin-top:12px;font-size:22px">音变速查</h1>' +
+    main.innerHTML = '<div class="wrap"><div class="page-head"><div class="cap lg pop" lang="ko">발음 규칙</div><h1 style="margin-top:12px;font-size:22px">音变速查</h1><p class="hint" style="margin-top:12px">这里是速查表。从零开始系统学，看<a href="#/b/p1">入门 · 发音规则</a>七课：每条规则都有写法和读音的方块对照、连着听和练习。</p>' +
       '<p class="lede">韩语按字写，说的时候却连成一串，声音会变。学过的词在剧里听不出来，多半是因为音变。不用背规则名，每个例子听三遍，让耳朵记住真实的声音。方括号里是实际读音。</p></div>' +
       D.rules.map(r => '<section class="gram"><h3>' + esc(r.name) + ' <span class="muted" lang="ko" style="font-weight:400">' + esc(r.ko) + '</span></h3><p>' + esc(r.desc) + '</p>' +
         '<ul class="ex-list">' + r.examples.map((x, i) => '<li>' + pbtn(x.ko, KS.vx(i)) + sbtn(x.ko, KS.vx(i)) + '<div><div class="ko-text" lang="ko">' + esc(x.ko) + '<span class="pron">' + esc(x.pron) + '</span></div><div class="zh-text">' + esc(x.zh) + '</div></div></li>').join('') + '</ul></section>').join('') +

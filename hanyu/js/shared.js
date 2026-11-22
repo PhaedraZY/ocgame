@@ -21,6 +21,7 @@
       ((x.cmp || {}).rows || []).forEach((c, k) => add(c.ko, vx(k)));
       // 新讲法：分组里的原形和变形、区别里的对比句，都要能单独听，也要能连着听
       (x.parts || []).forEach(p => p.rows.forEach(r => { add(r[0], 'f'); add(r[1], 'm'); }));
+      (x.morph || []).forEach(m => { add(m.from, 'f'); add(m.to, 'f'); });
       ((x.diff || {}).pairs || []).forEach(pr => pr.slice(0, 2).forEach((c, k) => add(c.ko, vx(k))));
       (x.quiz || []).forEach(q => add(q.say, 'f'));
     }));
@@ -33,6 +34,27 @@
       (t.numDrill || []).forEach((d, i) => add(d.ko, vx(i)));
       (t.quiz || []).forEach(q => add(q.say, 'f'));
     });
+    // 入门课：所有字、词都用同一个女声，拼读总表每一格也要有
+    (D.basics || []).forEach(g => g.lessons.forEach(l => {
+      l.secs.forEach(sec => {
+        (sec.blocks || []).forEach(t => add(t, 'f'));
+        (sec.letters || []).forEach(r => { add(r[1], 'f'); add(r[3], 'f'); });
+        (sec.sets || []).forEach(set => set.forEach(t => { if (/[가-힣]/.test(t)) add(t, 'f'); }));
+        (sec.rows || []).forEach(r => add(r[1], 'f'));
+        (sec.parse || []).forEach(x => add(x.ko, 'f'));
+        ((sec.table || {}).rows || []).forEach(r => r.forEach(c => { if (c && typeof c === 'object') add(c.ko, 'f'); }));
+        (sec.morph || []).forEach(m => { add(m.from, 'f'); add(m.to, 'f'); });
+        (sec.shift || []).forEach(r => { add(r[0], 'f'); add(r[1], 'f'); });
+      });
+      (l.readq || []).forEach(r => add(r[0], 'f'));
+      (l.listen || []).forEach(set => set.forEach(t => add(t, 'f')));
+      (l.order || []).forEach(o => add(o.chunks.join(' '), 'f'));
+      l.quiz.forEach(q => add(q.say, 'f'));
+    }));
+    if (D.hangulGrid) {
+      const G = D.hangulGrid, L = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ', V = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
+      G.cons.forEach(c => G.basic.concat(G.compound).forEach(v => add(String.fromCharCode(0xAC00 + (L.indexOf(c) * 21 + V.indexOf(v)) * 28), 'f')));
+    }
     // 逐词标注里不在词汇表的实词，点开时会单独朗读
     const vocabKeys = {};
     D.seasons.forEach(s => s.episodes.forEach(e => e.vocab.forEach(w => { vocabKeys[w.id || w.ko] = 1; })));
