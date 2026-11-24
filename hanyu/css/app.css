@@ -714,3 +714,33 @@ details > summary { cursor: pointer; }
 .hb-box.hb-h.has-t span { font-size: 0.8em; }
 .hb-box.hb-h.has-t { font-size: 26px; }
 .mph .hb-box.hb-h.has-t { font-size: 19px; }
+
+/* 单词本 */
+.wb-today { margin-bottom: 18px; }
+.wb-today h3 { margin-bottom: 4px; }
+.wb-today .progress { margin: 10px 0 0; max-width: 420px; }
+.wb-letters { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px; margin: 4px 0 14px; }
+.wb-letters button { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 6px 2px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.wb-letters button b { font-size: 22px; line-height: 1.1; }
+.wb-letters button small { font-size: 11px; color: var(--faint); }
+.wb-letters button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.wb-letters button.on small { color: #C9D2E0; }
+.wb-sub { font-size: 17px; margin: 18px 0 6px; }
+.wb-list { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+.wb-row { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; border-top: 1px solid var(--line); cursor: pointer; }
+.wb-row:first-child { border-top: 0; }
+.wb-row:hover { background: #FAFBFD; }
+.wb-row.open { background: #FAFBFD; cursor: default; }
+.wb-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.wb-head b { font-size: 19px; }
+.wb-head .f { color: var(--blue); font-size: 15px; font-weight: 600; }
+.wb-head .zh-text { margin: 0; }
+.wb-more { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); cursor: default; }
+.wb-ex { font-size: 17px; }
+.wb-src { margin-top: 8px; gap: 6px; }
+.wb-row > .tag { flex: none; margin-top: 4px; }
+@media (max-width: 760px) {
+  .wb-letters { grid-template-columns: repeat(7, 1fr); }
+  .wb-letters button b { font-size: 18px; }
+  .wb-row { padding: 10px; gap: 8px; }
+}

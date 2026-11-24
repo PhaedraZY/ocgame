@@ -283,6 +283,8 @@
     [/^#\/t\/(\w+)(?:\/(\d))?$/, viewTopic],
     [/^#\/b\/(\w+)(?:\/(\d))?$/, viewBasic],
     [/^#\/review$/, viewReview],
+    [/^#\/words$/, viewWords],
+    [/^#\/words\/today(?:\/(\d))?$/, viewWordsToday],
     [/^#\/packs$/, viewPacks],
     [/^#\/pack\/(\w+)$/, viewPack],
     [/^#\/rules$/, viewRules],
@@ -316,12 +318,13 @@
     const h = location.hash || '#/';
     const due = dueIds().length;
     // 网上的静态版没有歌曲（要本地服务），精听工作台只能用自己的字幕文件
-    const items = [['#/', '今天'], ['#/learn', '课程'], ['#/review', '复习', due], ['#/packs', '表达包']]
+    const items = [['#/', '今天'], ['#/learn', '课程'], ['#/review', '复习', due], ['#/words', '单词本'], ['#/packs', '表达包']]
       .concat(STATIC ? [] : [['#/songs', '歌曲']])
       .concat([['#/grammar', '语法速查'], ['#/rules', '音变速查'], null, ['#/lab', '精听工作台'], ['#/cards', '我的卡片'], ['#/settings', '设置']]);
     const on = href => href === '#/' ? (h === '#/' || h === '#' || h === '') :
       href === '#/learn' ? (h === href || h.indexOf('#/e/') === 0 || h.indexOf('#/t/') === 0 || h.indexOf('#/b/') === 0) :
         href === '#/packs' ? (h === href || h.indexOf('#/pack/') === 0) :
+          href === '#/words' ? (h === href || h.indexOf('#/words/') === 0) :
           href === '#/songs' ? (h === href || h.indexOf('#/song/') === 0) :
             href === '#/lab' ? (h === href || h.indexOf('#/v/') === 0) : h === href;
     nav.innerHTML = items.map(it => it ? '<a href="' + it[0] + '" class="' + (on(it[0]) ? 'on' : '') + '"' + (on(it[0]) ? ' aria-current="page"' : '') + '><span>' + it[1] + '</span>' +
@@ -371,6 +374,9 @@
       (nx ? '<li class="' + (doneToday ? 'done' : '') + '"><div><h3>新的一集：<span lang="ko">' + esc(nx.caption) + '</span></h3><p class="muted small">' + epLabel(nx) + '，' + esc(nx.title) + '。' +
         (doneToday ? '今天已经学过一集了，想多学也可以。' : '大约 20 分钟。') + '</p></div><a class="btn ' + (doneToday ? '' : 'primary') + '" href="#/e/' + nx.id + '">开始学习</a></li>'
         : '<li class="done"><div><h3>二十集全部学完了</h3><p class="muted small">接下来把时间多放在精听工作台上。</p></div><a class="btn" href="#/learn">回顾课程</a></li>') +
+      (WORDS.length ? (() => { const ws = todaySet(); return '<li class="' + (!ws.length && S.wd.list.length ? 'done' : '') + '"><div><h3>背单词</h3><p class="muted small">' +
+        (ws.length ? '今天 ' + ws.length + ' 个新词，从 <span lang="ko">' + esc(ws[0].ko) + '</span> 开始（' + wLetter(ws[0]) + ' 组）。' : '今天这组学完了。') + '</p></div>' +
+        (ws.length ? '<a class="btn" href="#/words/today">开始</a>' : '<a class="btn" href="#/words">单词本</a>') + '</li>'; })() : '') +
       '<li><div><h3>精听真实片段</h3><p class="muted small">用你自己的韩剧或综艺片段，一句一句听十分钟。</p></div><a class="btn" href="#/lab">打开工作台</a></li>' +
       '</ol>' +
       '<div class="stats"><div><b>' + EPS.filter(e => S.done[e.id]).length + ' / ' + EPS.length + '</b>已学集数</div><div><b>' + Object.keys(S.cards).length + '</b>复习卡片</div><div><b>' + streak() + '</b>连续学习天数</div>' +
@@ -681,6 +687,178 @@
   }
   // 只比较答案里的数字：7:05、7点5分、7/5 都算对
   const numGroups = s => (String(s).replace(/[,，]/g, '').match(/\d+/g) || []).map(Number);
+
+
+  // ---------- 单词本：课程里所有的词，按 가나다 分组，每天一组新词 ----------
+  const WORDS = D.words || [];
+  const WIDX = Object.fromEntries(WORDS.map((w, i) => [w.ko, i]));
+  const WL = 'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎ'.split('');
+  const W_TENSE = { 'ㄲ': 'ㄱ', 'ㄸ': 'ㄷ', 'ㅃ': 'ㅂ', 'ㅆ': 'ㅅ', 'ㅉ': 'ㅈ' };
+  const wLetter = w => { const p = hSplit(w.ko[0]); return p ? (W_TENSE[p.l] || p.l) : '其他'; };
+  const W_VOW = [['아', 'ㅏㅐㅑㅒ'], ['어', 'ㅓㅔㅕㅖ'], ['오', 'ㅗㅘㅙㅚㅛ'], ['우', 'ㅜㅝㅞㅟㅠ'], ['으', 'ㅡㅢ'], ['이', 'ㅣ']];
+  const wVowel = w => { const p = hSplit(w.ko[0]); const g = p && W_VOW.find(x => x[1].indexOf(p.v) >= 0); return g ? g[0] : ''; };
+  const W_TYPE = { n: '名词等', v: '动词·形容词', x: '短语和表达' };
+  S.known = S.known || {};
+  const wCardId = w => 'w:' + w.ko;
+  function wStatus(w) {
+    if (S.known[w.ko]) return 'known';
+    const c = S.srs[wCardId(w)];
+    if (!c) return 'new';
+    return c.ivl >= 21 ? 'known' : 'learning';
+  }
+  const W_ST = { new: ['没学过', ''], learning: ['复习中', 'learned'], known: ['已掌握', 'ok'] };
+  const wSrcLabel = s => /^s\de\d\d$/.test(s) && EP[s] ? [epLabel(EP[s]), '#/e/' + s + '/3'] :
+    s.startsWith('t:') && TOPIC[s.slice(2)] ? ['场景 · ' + TOPIC[s.slice(2)].zh, '#/t/' + s.slice(2)] :
+      s.startsWith('p:') ? ['表达包 · ' + ((D.packs.find(p => p.id === s.slice(2)) || {}).zh || ''), '#/pack/' + s.slice(2)] : [s, ''];
+  const wbCard = w => ({ id: wCardId(w), kind: 'word', ko: w.ko, f: w.f || '', zh: w.zh, v: 'f', say: KS.wordSay(w), ex: w.ex || '', exzh: w.exzh || '', exSay: w.ex || '', exv: 'm', src: '单词本 · ' + wLetter(w) });
+  const wPerDay = () => S.set.wpd || 20;
+  // 今天这一组：一天之内固定，刷新不变；学完可以再来一组
+  function todaySet(more) {
+    const t = today();
+    if (!S.wd || S.wd.day !== t) S.wd = { day: t, list: [], done: 0 };
+    if (!S.wd.list.length || more) {
+      const taken = new Set(S.wd.list);
+      const add = WORDS.filter(w => wStatus(w) === 'new' && !taken.has(w.ko)).slice(0, wPerDay()).map(w => w.ko);
+      S.wd.list = S.wd.list.concat(add);
+      save();
+    }
+    return S.wd.list.slice(S.wd.done).map(k => WORDS[WIDX[k]]).filter(Boolean);
+  }
+  const wRow = w => {
+    const st = wStatus(w);
+    return '<li class="wb-row" data-w="' + esc(w.ko) + '">' + pbtn(KS.wordSay(w), 'f') +
+      '<div class="grow"><div class="wb-head"><b lang="ko">' + esc(w.ko) + '</b>' + (pronOf(w.ko) ? ' ' + pronTag(w.ko) : '') +
+      (w.f ? ' <span class="f" lang="ko">' + esc(w.f) + '</span>' : '') + '<span class="zh-text">' + esc(w.zh) + '</span></div>' +
+      '<div class="wb-more" hidden></div></div><span class="tag ' + W_ST[st][1] + '">' + W_ST[st][0] + '</span></li>';
+  };
+  const wMore = w => (w.ex ? '<div class="say">' + pbtn(w.ex, 'm') + '<div><div class="ko-text wb-ex" lang="ko">' + esc(w.ex) + '</div>' + (pronOf(w.ex) ? '<div class="tiny">读作 ' + pronTag(w.ex) + '</div>' : '') + '<div class="zh-text">' + esc(w.exzh || '') + '</div></div></div>' : '<p class="tiny">这一条本身就是一句常用台词。</p>') +
+    '<div class="row wb-src"><span class="tiny">出现在：</span>' + w.src.map(sc => { const [lb, href] = wSrcLabel(sc); return href ? '<a class="tag learned" href="' + href + '">' + esc(lb) + '</a>' : '<span class="tag">' + esc(lb) + '</span>'; }).join('') + '</div>' +
+    '<div class="row" style="margin-top:8px">' + (S.cards[wCardId(w)] ? '<span class="tiny">已经在复习里了。</span>' : '<button class="btn sm" data-wadd>加入复习</button>') +
+    (S.known[w.ko] ? '<button class="btn sm" data-wunknow>取消“已经会了”</button>' : '<button class="btn sm" data-wknow>我已经会了</button>') + '</div>';
+
+  function viewWords() {
+    const f = Object.assign({ l: 'ㄱ', st: 'all', t: 'all', q: '' }, S.wf || {});
+    const counts = {};
+    WORDS.forEach(w => { const l = wLetter(w); counts[l] = counts[l] || [0, 0]; counts[l][1]++; if (wStatus(w) !== 'new') counts[l][0]++; });
+    const learned = WORDS.filter(w => wStatus(w) !== 'new').length, left = WORDS.length - learned;
+    const ts = todaySet(), set = S.wd;
+    main.innerHTML = '<div class="wrap"><div class="page-head"><div class="cap lg pop" lang="ko">단어장</div>' +
+      '<p class="lede">课程里出现过的所有词，共 ' + WORDS.length + ' 个，按 가나다 顺序排（韩语词典的“a-z”：看第一个字开头的辅音）。紧音 ㄲ ㄸ ㅃ ㅆ ㅉ 排在对应的平音组里。</p></div>' +
+      '<section class="panel wb-today"><div class="row" style="justify-content:space-between"><div><h3>今天的新词</h3><p class="muted small">' +
+      (ts.length ? '还有 ' + ts.length + ' 个，从 <b lang="ko">' + esc(ts[0].ko) + '</b> 开始（' + wLetter(ts[0]) + ' 组）。' : set.list.length ? '今天这组学完了。' : '所有的词都学过了。') +
+      '已学 ' + learned + ' / ' + WORDS.length + (left ? '，每天 ' + wPerDay() + ' 个大约还要 ' + Math.ceil(left / wPerDay()) + ' 天' : '') + '。</p>' +
+      '<div class="progress"><i style="width:' + (100 * learned / WORDS.length).toFixed(1) + '%"></i></div></div>' +
+      '<div class="row">' + (ts.length ? '<a class="btn primary" href="#/words/today">开始</a>' : left ? '<button class="btn" id="wMore">再来一组</button>' : '') +
+      '<span class="small muted">每天</span><div class="seg" id="wpd">' + [10, 20, 30].map(n => '<button data-n="' + n + '" class="' + (wPerDay() === n ? 'on' : '') + '">' + n + '</button>').join('') + '</div></div></div></section>' +
+      '<div class="wb-letters" role="tablist">' + WL.concat(counts['其他'] ? ['其他'] : []).map(l => '<button data-l="' + l + '" class="' + (f.l === l && !f.q ? 'on' : '') + '"><b>' + l + '</b><small>' + (counts[l] || [0, 0])[0] + '/' + (counts[l] || [0, 0])[1] + '</small></button>').join('') + '</div>' +
+      '<div class="toolbar"><input class="search" id="wq" placeholder="搜索韩语或中文，比如 사랑、吃" value="' + esc(f.q) + '">' +
+      '<div class="seg" id="wst">' + [['all', '全部'], ['new', '没学过'], ['learning', '复习中'], ['known', '已掌握']].map(x => '<button data-v="' + x[0] + '" class="' + (f.st === x[0] ? 'on' : '') + '">' + x[1] + '</button>').join('') + '</div>' +
+      '<div class="seg" id="wt">' + [['all', '全部']].concat(Object.entries(W_TYPE)).map(x => '<button data-v="' + x[0] + '" class="' + (f.t === x[0] ? 'on' : '') + '">' + x[1] + '</button>').join('') + '</div>' +
+      '<span class="grow tiny" id="wn"></span></div><div id="wlist"></div></div>';
+    const draw = () => {
+      S.wf = f; save();
+      const q = f.q.trim().toLowerCase();
+      const list = WORDS.filter(w => (q ? (w.ko.indexOf(q) >= 0 || w.zh.toLowerCase().indexOf(q) >= 0) : wLetter(w) === f.l) &&
+        (f.st === 'all' || wStatus(w) === f.st) && (f.t === 'all' || w.t === f.t));
+      $('#wn').textContent = (q ? '搜到 ' : f.l + ' 组 ') + list.length + ' 个';
+      $$('.wb-letters button').forEach(b => b.classList.toggle('on', !q && b.dataset.l === f.l));
+      let html = '';
+      if (!q && f.l === 'ㅇ') {
+        W_VOW.concat([['其他', '']]).forEach(([v]) => {
+          const sub = list.filter(w => (wVowel(w) || '其他') === v);
+          if (sub.length) html += '<h3 class="wb-sub">' + (v === '其他' ? '其他' : v + ' 开头') + '<span class="muted small">　' + sub.length + ' 个</span></h3><ul class="wb-list">' + sub.map(wRow).join('') + '</ul>';
+        });
+      } else html = list.length ? '<ul class="wb-list">' + list.map(wRow).join('') + '</ul>' : '';
+      $('#wlist').innerHTML = html || '<div class="empty">没有符合条件的词。</div>';
+    };
+    $$('.wb-letters button').forEach(b => b.onclick = () => { f.l = b.dataset.l; f.q = ''; $('#wq').value = ''; draw(); });
+    $('#wq').oninput = e => { f.q = e.target.value; draw(); };
+    $$('#wst button').forEach(b => b.onclick = () => { f.st = b.dataset.v; $$('#wst button').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+    $$('#wt button').forEach(b => b.onclick = () => { f.t = b.dataset.v; $$('#wt button').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+    $$('#wpd button').forEach(b => b.onclick = () => { S.set.wpd = +b.dataset.n; save(); viewWords(); });
+    const mb = $('#wMore'); if (mb) mb.onclick = () => { todaySet(true); location.hash = '#/words/today'; };
+    main.onclick = e => {
+      if (e.target.closest('.play, a')) return;
+      const li = e.target.closest('.wb-row');
+      if (!li) return;
+      const w = WORDS[WIDX[li.dataset.w]], box = $('.wb-more', li);
+      if (e.target.closest('[data-wadd]')) { addCard(wbCard(w)); save(); renderNav(); toast('已加入复习，今天就会出现。'); box.innerHTML = wMore(w); return; }
+      if (e.target.closest('[data-wknow]')) { S.known[w.ko] = 1; save(); li.outerHTML = wRow(w); return; }
+      if (e.target.closest('[data-wunknow]')) { delete S.known[w.ko]; save(); li.outerHTML = wRow(w); return; }
+      if (e.target.closest('.wb-more')) return;
+      if (box.hidden) { box.innerHTML = wMore(w); box.hidden = false; li.classList.add('open'); } else { box.hidden = true; li.classList.remove('open'); }
+    };
+    draw();
+  }
+
+  // 今天的新词：先看一遍，再做小测，做完进复习
+  function viewWordsToday(step) {
+    const list = todaySet();
+    step = +step === 2 ? 2 : 1;
+    if (!list.length) { location.hash = '#/words'; return; }
+    const first = list[0], last = list[list.length - 1];
+    main.innerHTML = '<div class="wrap"><div class="ep-head"><div class="kicker"><a href="#/words">单词本</a>　今天的新词</div>' +
+      '<div class="cap lg pop" lang="ko">오늘의 단어</div><h1>' + list.length + ' 个新词：<span lang="ko">' + esc(first.ko) + '</span> ～ <span lang="ko">' + esc(last.ko) + '</span></h1>' +
+      '<p class="muted">先把每个词听一遍、看看例句，再做小测。已经会的点“我已经会了”，就不用测了。</p></div>' +
+      '<div class="steps" role="tablist">' + ['看一遍', '小测'].map((n, i) => '<button class="' + (i + 1 === step ? 'on' : '') + '" data-step="' + (i + 1) + '"><b>' + (i + 1) + '</b>' + n + '</button>').join('') + '</div><div id="stepBody"></div></div>';
+    $$('.steps button').forEach(b => b.onclick = () => { location.hash = '#/words/today' + (b.dataset.step === '2' ? '/2' : ''); });
+    const body = $('#stepBody');
+    if (step === 1) {
+      body.innerHTML = '<div class="toolbar"><button class="btn" id="seq">连续播放全部</button><span class="grow tiny">每个词读两遍：原形，再加最常听到的变形。点例句前面的 ▶ 听整句。</span></div>' +
+        '<ul class="wb-list wb-learn">' + list.map(w => '<li class="wb-row open" data-w="' + esc(w.ko) + '">' + pbtn(KS.wordSay(w), 'f') + '<div class="grow"><div class="wb-head"><b lang="ko">' + esc(w.ko) + '</b>' + (pronOf(w.ko) ? ' ' + pronTag(w.ko) : '') +
+          (w.f ? ' <span class="f" lang="ko">' + esc(w.f) + '</span>' : '') + '<span class="zh-text">' + esc(w.zh) + '</span><span class="tag">' + wLetter(w) + ' · ' + W_TYPE[w.t] + '</span></div><div class="wb-more">' + wMore(w) + '</div></div></li>').join('') + '</ul>' +
+        '<div class="step-foot"><a class="btn" href="#/words">回单词本</a><a class="btn primary" href="#/words/today/2">下一步：小测</a></div>';
+      const sb = $('#seq');
+      sb.onclick = async () => {
+        if (sb.dataset.on) { stopAudio(); return; }
+        sb.dataset.on = '1'; sb.textContent = '停止';
+        const btns = $$('.wb-learn > li > .play', body);
+        await playSeq(list.map(w => ({ t: KS.wordSay(w), v: 'f' })), i => btns.forEach((b, j) => b.classList.toggle('playing', j === i)));
+        delete sb.dataset.on; sb.textContent = '连续播放全部';
+      };
+      main.onclick = e => {
+        const li = e.target.closest('.wb-row'); if (!li) return;
+        const w = WORDS[WIDX[li.dataset.w]];
+        if (e.target.closest('[data-wknow]')) { S.known[w.ko] = 1; save(); $('.wb-more', li).innerHTML = wMore(w); toast('标记为已经会了，小测里不出这个词。'); }
+        if (e.target.closest('[data-wunknow]')) { delete S.known[w.ko]; save(); $('.wb-more', li).innerHTML = wMore(w); }
+        if (e.target.closest('[data-wadd]')) { addCard(wbCard(w)); save(); renderNav(); $('.wb-more', li).innerHTML = wMore(w); }
+      };
+      return;
+    }
+    // 小测：听音选意思、看中文选韩语交替出；干扰项尽量选同类型的词
+    const test = list.filter(w => !S.known[w.ko]);
+    const others = (w, key) => { const same = WORDS.filter(x => x !== w && x.t === w.t && x[key] !== w[key]); return shuffle(same).slice(0, 3); };
+    const qs = test.map((w, i) => ({ w: w, kind: i % 2 ? 'read' : 'listen', opts: shuffle([w].concat(others(w, i % 2 ? 'ko' : 'zh'))) }));
+    let score = 0, answered = 0;
+    body.innerHTML = (qs.length ? '<section class="drill"><h3>小测</h3><p class="tiny">单数题听音选意思，双数题看中文选韩语。</p>' + qs.map((q, n) => '<div class="q" data-wq="' + n + '">' +
+      (q.kind === 'listen' ? '<div class="row">' + pbtn(KS.wordSay(q.w), 'f') + '<span class="muted small">第 ' + (n + 1) + ' 题：听音选意思</span></div>' : '<div class="qtext">' + esc(q.w.zh) + '<span class="muted small">　第 ' + (n + 1) + ' 题</span></div>') +
+      '<div class="choices">' + q.opts.map((o, j) => '<button class="choice" data-o="' + j + '"' + (q.kind === 'read' ? ' lang="ko"' : '') + '>' + esc(q.kind === 'read' ? o.ko : o.zh) + '</button>').join('') + '</div><div class="verdict"></div></div>').join('') + '</section>' : '<p class="muted">这组词你都标成“已经会了”。</p>') +
+      '<div class="finish" id="finish"><button class="btn primary big" id="done">完成今天这组</button><p class="tiny" style="margin-top:10px">完成后，这 ' + test.length + ' 个词进入复习，明天开始出现。</p></div>' +
+      '<div class="step-foot"><a class="btn" href="#/words/today">上一步</a><span></span></div>';
+    $$('[data-wq]', body).forEach(box => {
+      const q = qs[+box.dataset.wq];
+      $$('.choice', box).forEach(c => c.onclick = () => {
+        const right = q.opts[+c.dataset.o] === q.w;
+        $$('.choice', box).forEach(x => { x.disabled = true; if (q.opts[+x.dataset.o] === q.w) x.classList.add('right'); });
+        if (!right) c.classList.add('wrong'); else score++;
+        answered++;
+        const v = $('.verdict', box);
+        v.className = 'verdict ' + (right ? 'good' : 'bad');
+        v.innerHTML = (right ? '答对了。' : '不对。') + '<b lang="ko">' + esc(q.w.ko) + '</b>' + (pronOf(q.w.ko) ? ' ' + pronTag(q.w.ko) : '') + '：' + esc(q.w.zh) + '。' + (q.w.ex ? ' 例句：<span lang="ko">' + esc(q.w.ex) + '</span>' : '');
+        if (q.kind === 'read') play(KS.wordSay(q.w), 'f');
+      });
+    });
+    $('#done').onclick = () => {
+      let n = 0;
+      test.forEach(w => { if (addCard(wbCard(w), today() + 1)) n++; });
+      S.wd.done = S.wd.list.length;
+      logAct(); save(); renderNav();
+      const left = WORDS.filter(w => wStatus(w) === 'new').length;
+      $('#finish').innerHTML = '<div class="cap md pink pop" lang="ko">완료!</div><p>答对了 ' + score + ' / ' + qs.length + ' 题。' + (n ? '新加入 ' + n + ' 张复习卡片，明天开始出现。' : '') + '还剩 ' + left + ' 个词没学。</p>' +
+        '<div class="row" style="justify-content:center;margin-top:16px">' + (left ? '<button class="btn" id="wMore2">再来一组</button>' : '') + '<a class="btn primary" href="#/words">回单词本</a></div>';
+      const m2 = $('#wMore2'); if (m2) m2.onclick = () => { todaySet(true); location.hash = '#/words/today'; route(); };
+    };
+  }
 
   function viewTopic(id, step) {
     const t = TOPIC[id];

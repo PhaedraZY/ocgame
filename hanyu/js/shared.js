@@ -55,6 +55,11 @@
       const G = D.hangulGrid, L = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ', V = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
       G.cons.forEach(c => G.basic.concat(G.compound).forEach(v => add(String.fromCharCode(0xAC00 + (L.indexOf(c) * 21 + V.indexOf(v)) * 28), 'f')));
     }
+    // 单词本：只补还没有任何声音版本的词和例句，避免同一句话重复生成
+    if (D.words) {
+      const have = new Set(out.map(x => x.t));
+      D.words.forEach(w => { const say = wordSay(w); if (!have.has(say)) add(say, 'f'); if (w.ex && !have.has(w.ex)) add(w.ex, 'm'); });
+    }
     // 逐词标注里不在词汇表的实词，点开时会单独朗读
     const vocabKeys = {};
     D.seasons.forEach(s => s.episodes.forEach(e => e.vocab.forEach(w => { vocabKeys[w.id || w.ko] = 1; })));
