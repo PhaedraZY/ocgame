@@ -74,7 +74,8 @@
       return '<div class="gpart' + (x.gram ? ' gram-part' : '') + '">' + (say ? pbtn(say, lx ? KS.vx(lx.i) : 'f') : '<span class="gdot"></span>') +
         '<div class="grow"><b lang="ko">' + esc(x.ko) + '</b>　' + esc(x.zh) + '　' + extra + '</div></div>';
     }).join('');
-    return '<div class="gloss-box">' + rows + '<div class="row gfoot">' +
+    return '<div class="gloss-box">' + (HANGUL.test(clean) ? '<div class="g-word">' + pbtn(clean, 'f') + '<b lang="ko">' + esc(clean) + '</b>' + (pronOf(clean) ? ' <span class="tiny">读作</span> ' + pronTag(clean) : ' <span class="tiny">读音和写法一样</span>') + '</div>' : '') +
+      rows + '<div class="row gfoot">' +
       addable.map(lx => '<button class="btn sm" data-addw="' + esc(lx.w.id || lx.w.ko) + '">把 <span lang="ko">' + esc(lx.w.ko) + '</span> 加入复习</button>').join('') +
       '<a class="btn sm" target="_blank" rel="noopener" href="https://korean.dict.naver.com/kozhdict/#/search?query=' + encodeURIComponent(clean) + '">查 Naver 词典</a></div></div>';
   }
@@ -222,6 +223,14 @@
   const playCard = (c, btn) => c.clip ? playClip(c.clip.url, c.clip.s, c.clip.e, btn) : play(c.say || c.ko, c.v, 0, btn);
 
   document.addEventListener('click', e => {
+    const wj = e.target.closest('[data-wjump]');
+    if (wj) {
+      e.preventDefault(); e.stopPropagation();
+      S.wf = Object.assign({ l: 'ㄱ', st: 'all', t: 'all' }, S.wf || {}, { q: wj.dataset.wjump, st: 'all', t: 'all' }); save();
+      if (location.hash === '#/words') { viewWords(); setTimeout(() => { const r = $('.wb-row[data-w="' + CSS.escape(wj.dataset.wjump) + '"] .grow'); if (r) r.click(); }, 0); }
+      else location.hash = '#/words';
+      return;
+    }
     const tb = e.target.closest('.term');
     const pop = $('#termPop');
     if (tb) {
@@ -698,6 +707,41 @@
   const W_VOW = [['아', 'ㅏㅐㅑㅒ'], ['어', 'ㅓㅔㅕㅖ'], ['오', 'ㅗㅘㅙㅚㅛ'], ['우', 'ㅜㅝㅞㅟㅠ'], ['으', 'ㅡㅢ'], ['이', 'ㅣ']];
   const wVowel = w => { const p = hSplit(w.ko[0]); const g = p && W_VOW.find(x => x[1].indexOf(p.v) >= 0); return g ? g[0] : ''; };
   const W_TYPE = { n: '名词等', v: '动词·形容词', x: '短语和表达' };
+  // 记忆钩子：汉字词逐个音节对上汉字，外来词给原词，缩略语拆开，固有词给联想
+  const MNEMO = D.mnemo || {};
+  const MN_KIND = { hanja: '汉字词', loan: '外来词', split: '拆开看', native: '联想' };
+  const MN_HOW = { parts: '拆开看', pair: '成对记', scene: '剧里那一幕', sound: '谐音' };
+  function mnHtml(ko, opt) {
+    const m = MNEMO[ko];
+    if (!m) return '';
+    opt = opt || {};
+    if (m.kind === 'native') {
+      if (!m.how || m.how === 'none') return '';
+      let h = '<div class="mn mn-native mn-' + m.how + '"><div class="mn-top"><span class="mn-k">' + MN_HOW[m.how] + '</span>';
+      if (m.how === 'pair') h += '<span class="mn-pair">' + m.pair.map(k => k === ko ? '<b lang="ko">' + esc(k) + '</b>' :
+        (opt.plain ? '<span class="tag" lang="ko">' + esc(k) + '</span>' : '<button class="tag learned" data-wjump="' + esc(k) + '" lang="ko">' + esc(k) + '</button>')).join('') + '</span>' +
+        qbtn(m.pair.map(k => ({ t: k, v: 'f' })), '连着听');
+      h += '</div>';
+      if (m.how === 'scene' && m.scene) {
+        const sc = m.scene, who = (CHARS[sc.who] || [sc.who])[0];
+        h += '<p class="mn-hook">' + esc(m.hook) + '：</p><div class="say mn-line">' + pbtn(sc.ko, sc.v) + '<div><div class="ko-text" lang="ko"><span class="tiny">' + esc(who) + '</span> ' + esc(sc.ko) + '</div><div class="zh-text">' + esc(sc.zh) + '</div>' +
+          (opt.plain ? '' : '<a class="tiny" href="#/e/' + sc.ep + '/2">去这一集听 →</a>') + '</div></div>';
+      } else if (m.hook) h += '<p class="mn-hook">' + esc(m.hook) + '</p>';
+      if (m.sound) h += '<p class="mn-hook mn-sound"><span class="mn-k">谐音</span> ' + esc(m.sound) + '</p>';
+      if (m.how === 'sound' || m.sound) h += '<p class="tiny">谐音只帮忙记，读音以粉色方括号为准。</p>';
+      return h + '</div>';
+    }
+    let h = '<div class="mn mn-' + m.kind + '"><div class="mn-top"><span class="mn-k">' + (MN_KIND[m.kind] || '记忆') + '</span>';
+    if (m.parts) h += '<span class="mn-hj">' + m.parts.map(p => '<span class="mn-syl"><b lang="ko">' + esc(p[0]) + '</b><i>' + esc(p[2]) + '</i></span>').join('') + '</span>' +
+      (m.hj !== m.hs ? '<span class="tiny">繁体 ' + esc(m.hj) + '</span>' : '');
+    if (m.loan) h += '<span class="mn-loan">' + esc(m.loan) + '</span>';
+    if (m.split) h += '<span class="mn-split" lang="ko">' + esc(m.split) + '</span>';
+    h += '</div>' + (m.hook ? '<p class="mn-hook">' + esc(m.hook) + '</p>' : '');
+    const fam = (m.parts || []).filter(p => p[3] && p[3].length);
+    if (fam.length) h += '<div class="mn-fam">' + fam.map(p => '<div><span class="tiny">同一个“' + esc(p[2]) + '”（<span lang="ko">' + esc(p[0]) + '</span>）：</span>' +
+      p[3].map(k => opt.plain ? '<span class="tag" lang="ko">' + esc(k) + '</span>' : '<button class="tag learned" data-wjump="' + esc(k) + '" lang="ko">' + esc(k) + '</button>').join('') + '</div>').join('') + '</div>';
+    return h + '</div>';
+  }
   S.known = S.known || {};
   const wCardId = w => 'w:' + w.ko;
   function wStatus(w) {
@@ -728,10 +772,11 @@
     const st = wStatus(w);
     return '<li class="wb-row" data-w="' + esc(w.ko) + '">' + pbtn(KS.wordSay(w), 'f') +
       '<div class="grow"><div class="wb-head"><b lang="ko">' + esc(w.ko) + '</b>' + (pronOf(w.ko) ? ' ' + pronTag(w.ko) : '') +
-      (w.f ? ' <span class="f" lang="ko">' + esc(w.f) + '</span>' : '') + '<span class="zh-text">' + esc(w.zh) + '</span></div>' +
+      (w.f ? ' <span class="f" lang="ko">' + esc(w.f) + '</span>' : '') + '<span class="zh-text">' + esc(w.zh) + '</span>' +
+      (MNEMO[w.ko] && MNEMO[w.ko].hs ? '<span class="mn-chip">' + esc(MNEMO[w.ko].hs) + '</span>' : MNEMO[w.ko] && MNEMO[w.ko].loan ? '<span class="mn-chip">' + esc(MNEMO[w.ko].loan) + '</span>' : '') + '</div>' +
       '<div class="wb-more" hidden></div></div><span class="tag ' + W_ST[st][1] + '">' + W_ST[st][0] + '</span></li>';
   };
-  const wMore = w => (w.ex ? '<div class="say">' + pbtn(w.ex, 'm') + '<div><div class="ko-text wb-ex" lang="ko">' + esc(w.ex) + '</div>' + (pronOf(w.ex) ? '<div class="tiny">读作 ' + pronTag(w.ex) + '</div>' : '') + '<div class="zh-text">' + esc(w.exzh || '') + '</div></div></div>' : '<p class="tiny">这一条本身就是一句常用台词。</p>') +
+  const wMore = w => mnHtml(w.ko) + (w.ex ? '<div class="say">' + pbtn(w.ex, 'm') + '<div class="grow">' + glossLine(w.ex, 'wb-ex', S.set.inter) + '<div class="tiny">点例句里的词，看意思、原形和读音。</div>' + (pronOf(w.ex) ? '<div class="tiny">读作 ' + pronTag(w.ex) + '</div>' : '') + '<div class="zh-text">' + esc(w.exzh || '') + '</div></div></div>' : '<p class="tiny">这一条本身就是一句常用台词。</p>') +
     '<div class="row wb-src"><span class="tiny">出现在：</span>' + w.src.map(sc => { const [lb, href] = wSrcLabel(sc); return href ? '<a class="tag learned" href="' + href + '">' + esc(lb) + '</a>' : '<span class="tag">' + esc(lb) + '</span>'; }).join('') + '</div>' +
     '<div class="row" style="margin-top:8px">' + (S.cards[wCardId(w)] ? '<span class="tiny">已经在复习里了。</span>' : '<button class="btn sm" data-wadd>加入复习</button>') +
     (S.known[w.ko] ? '<button class="btn sm" data-wunknow>取消“已经会了”</button>' : '<button class="btn sm" data-wknow>我已经会了</button>') + '</div>';
@@ -754,7 +799,7 @@
       '<div class="toolbar"><input class="search" id="wq" placeholder="搜索韩语或中文，比如 사랑、吃" value="' + esc(f.q) + '">' +
       '<div class="seg" id="wst">' + [['all', '全部'], ['new', '没学过'], ['learning', '复习中'], ['known', '已掌握']].map(x => '<button data-v="' + x[0] + '" class="' + (f.st === x[0] ? 'on' : '') + '">' + x[1] + '</button>').join('') + '</div>' +
       '<div class="seg" id="wt">' + [['all', '全部']].concat(Object.entries(W_TYPE)).map(x => '<button data-v="' + x[0] + '" class="' + (f.t === x[0] ? 'on' : '') + '">' + x[1] + '</button>').join('') + '</div>' +
-      '<span class="grow tiny" id="wn"></span></div><div id="wlist"></div></div>';
+      '<button class="btn sm ' + (S.set.inter ? 'on' : '') + '" id="wvi">逐词对照</button><span class="grow tiny" id="wn"></span></div><div id="wlist"></div></div>';
     const draw = () => {
       S.wf = f; save();
       const q = f.q.trim().toLowerCase();
@@ -773,12 +818,14 @@
     };
     $$('.wb-letters button').forEach(b => b.onclick = () => { f.l = b.dataset.l; f.q = ''; $('#wq').value = ''; draw(); });
     $('#wq').oninput = e => { f.q = e.target.value; draw(); };
+    $('#wvi').onclick = e => { S.set.inter = !S.set.inter; save(); e.currentTarget.classList.toggle('on', S.set.inter); $$('.wb-row.open .wb-more').forEach(b => { b.innerHTML = wMore(WORDS[WIDX[b.closest('.wb-row').dataset.w]]); }); };
     $$('#wst button').forEach(b => b.onclick = () => { f.st = b.dataset.v; $$('#wst button').forEach(x => x.classList.toggle('on', x === b)); draw(); });
     $$('#wt button').forEach(b => b.onclick = () => { f.t = b.dataset.v; $$('#wt button').forEach(x => x.classList.toggle('on', x === b)); draw(); });
     $$('#wpd button').forEach(b => b.onclick = () => { S.set.wpd = +b.dataset.n; save(); viewWords(); });
     const mb = $('#wMore'); if (mb) mb.onclick = () => { todaySet(true); location.hash = '#/words/today'; };
     main.onclick = e => {
       if (e.target.closest('.play, a')) return;
+      if (glossClick(e, '单词本')) return;
       const li = e.target.closest('.wb-row');
       if (!li) return;
       const w = WORDS[WIDX[li.dataset.w]], box = $('.wb-more', li);
@@ -804,10 +851,11 @@
     $$('.steps button').forEach(b => b.onclick = () => { location.hash = '#/words/today' + (b.dataset.step === '2' ? '/2' : ''); });
     const body = $('#stepBody');
     if (step === 1) {
-      body.innerHTML = '<div class="toolbar"><button class="btn" id="seq">连续播放全部</button><span class="grow tiny">每个词读两遍：原形，再加最常听到的变形。点例句前面的 ▶ 听整句。</span></div>' +
+      body.innerHTML = '<div class="toolbar"><button class="btn" id="seq">连续播放全部</button><button class="btn ' + (S.set.inter ? 'on' : '') + '" id="wvi">逐词对照</button><span class="grow tiny">每个词读两遍：原形，再加最常听到的变形。点例句前面的 ▶ 听整句，点例句里的词看意思和读音。</span></div>' +
         '<ul class="wb-list wb-learn">' + list.map(w => '<li class="wb-row open" data-w="' + esc(w.ko) + '">' + pbtn(KS.wordSay(w), 'f') + '<div class="grow"><div class="wb-head"><b lang="ko">' + esc(w.ko) + '</b>' + (pronOf(w.ko) ? ' ' + pronTag(w.ko) : '') +
           (w.f ? ' <span class="f" lang="ko">' + esc(w.f) + '</span>' : '') + '<span class="zh-text">' + esc(w.zh) + '</span><span class="tag">' + wLetter(w) + ' · ' + W_TYPE[w.t] + '</span></div><div class="wb-more">' + wMore(w) + '</div></div></li>').join('') + '</ul>' +
         '<div class="step-foot"><a class="btn" href="#/words">回单词本</a><a class="btn primary" href="#/words/today/2">下一步：小测</a></div>';
+      $('#wvi').onclick = () => { S.set.inter = !S.set.inter; save(); viewWordsToday(1); };
       const sb = $('#seq');
       sb.onclick = async () => {
         if (sb.dataset.on) { stopAudio(); return; }
@@ -817,6 +865,7 @@
         delete sb.dataset.on; sb.textContent = '连续播放全部';
       };
       main.onclick = e => {
+        if (glossClick(e, '单词本')) return;
         const li = e.target.closest('.wb-row'); if (!li) return;
         const w = WORDS[WIDX[li.dataset.w]];
         if (e.target.closest('[data-wknow]')) { S.known[w.ko] = 1; save(); $('.wb-more', li).innerHTML = wMore(w); toast('标记为已经会了，小测里不出这个词。'); }
@@ -1496,6 +1545,7 @@
           : (c.clip ? '<div class="row" style="justify-content:center">' + cbtn(c.clip.url, c.clip.s, c.clip.e) + pbtn(c.ko, 'f', 'sm-play') + '<span class="tiny">念一遍</span></div>' : pbtn(c.say || c.ko, c.v)) +
           '<div class="ko-text" lang="ko">' + (LINE_G[c.ko] || c.g ? tokHtml(c.ko, LINE_G[c.ko] || c.g, { inter: true, click: false, song: !LINE_G[c.ko] }) : esc(c.ko)) + (c.f && c.f !== c.ko ? ' <span class="f">' + esc(c.f) + '</span>' : '') + '</div>' +
           '<div class="zh-text">' + esc(c.zh || '（还没有中文意思，可以在“我的卡片”里补上）') + '</div>' +
+          (c.kind === 'word' && MNEMO[c.ko] ? mnHtml(c.ko, { plain: true }) : '') +
           (c.ex ? '<div class="ex">' + pbtn(c.exSay || c.ex, c.exv || 'm') + '<span><span lang="ko">' + esc(c.ex) + '</span>　' + esc(c.exzh) + '</span></div>' : '') +
           '<div class="src">' + esc(c.src || '') + '</div>') +
         '</div>' +
@@ -1863,6 +1913,8 @@
         (V.playNote ? '<div class="unk small">' + esc(V.playNote) + '</div>' : '') + '</div>' : '') +
       '<div class="lab' + (S.set.labBig && lab.media ? ' big' : '') + '"><div class="lab-left">' +
       '<div class="stage' + (S.set.labMirror && lab.media ? ' mirror' : '') + '">' + (lab.media ? '<video id="vid" src="' + lab.media.url + '" preload="auto" playsinline></video>' : '<div class="noplay">没有导入视频。点句子会用合成语音朗读，适合练字幕文本或剧本。</div>') + '</div>' +
+      (lab.media ? '<div class="lab-seek"><button class="play" id="vplay" aria-label="播放或暂停">' + ICON + '</button><span class="tiny" id="vtime">0:00 / 0:00</span>' +
+        '<div class="seek-wrap"><div class="seek-cues" id="vcues"></div><input type="range" class="seek" id="vseek" min="0" max="1" step="0.1" value="0" aria-label="视频进度，可以拖动"></div></div>' : '') +
       '<div class="sub-box" id="subBox"></div>' +
       '<div class="lab-ctrl"><button class="btn" id="prev">上一句</button><button class="btn primary" id="again">重播这句</button><button class="btn" id="next">下一句</button>' +
       '<button class="btn ' + (lab.loop ? 'on' : '') + '" id="loop">循环本句</button><button class="btn ' + (lab.auto ? 'on' : '') + '" id="auto">逐句暂停</button><button class="btn" id="keep">收藏这句</button></div>' +
@@ -1871,7 +1923,7 @@
       (lab.cues.some(c => c.g) ? '<button class="btn sm ' + (S.set.inter ? 'on' : '') + '" id="vi">逐词对照</button>' : '') +
       (lab.media ? '<button class="btn sm ' + (S.set.labBig ? 'on' : '') + '" id="vbig">大画面</button>' +
         '<button class="btn sm ' + (S.set.labMirror ? 'on' : '') + '" id="vmir" title="左右翻转画面（M）">镜像</button>' : '') + '</div>' +
-      '<p class="keys" style="margin-top:12px"><kbd>空格</kbd> 播放或暂停　<kbd>←</kbd> <kbd>→</kbd> 上一句、下一句　<kbd>R</kbd> 重播　<kbd>L</kbd> 循环　<kbd>H</kbd> 切换字幕　<kbd>S</kbd> 收藏' + (lab.media ? '　<kbd>M</kbd> 镜像' : '') + '。' +
+      '<p class="keys" style="margin-top:12px"><kbd>空格</kbd> 播放或暂停　<kbd>←</kbd> <kbd>→</kbd> 上一句、下一句　' + (lab.media ? '<kbd>Shift</kbd>+<kbd>←</kbd> <kbd>→</kbd> 后退、前进 5 秒　' : '') + '　<kbd>R</kbd> 重播　<kbd>L</kbd> 循环　<kbd>H</kbd> 切换字幕　<kbd>S</kbd> 收藏' + (lab.media ? '　<kbd>M</kbd> 镜像' : '') + '。' +
       (lab.cues.some(c => c.g) ? '点字幕里的词看意思和原形。' : '点字幕里的词会打开 Naver 韩中词典。') + (V ? '识别错的句子点“改这句”修改。' : '') + '</p>' +
       '</div><ol class="cues" id="cues">' + lab.cues.map((c, i) => '<li class="cue' + (i === lab.cur ? ' cur' : '') + (S.cards['c:' + c.ko] ? ' saved' : '') + '" data-i="' + i + '">' +
         '<button class="play" data-play="' + i + '" aria-label="播放这句">' + ICON + '</button><div><div class="t">' + (c.start != null ? fmt(c.start) : '第 ' + (i + 1) + ' 句') + '</div>' +
@@ -1925,6 +1977,42 @@
         if (k >= 0) setCur(k, true);
       }
     };
+    // 进度条：拖到哪里就从哪里播，字幕和右边的句子跟着跳到那一句
+    const seek = $('#vseek'), vtime = $('#vtime'), vplay = $('#vplay');
+    let dragging = false;
+    const cueAt = t => { let k = -1; lab.cues.forEach((c, i) => { if (c.start != null && c.start <= t) k = i; }); return k; };
+    const showTime = t => { if (vtime) vtime.textContent = fmt(t) + ' / ' + fmt(vid && vid.duration ? vid.duration : 0); };
+    const syncSeek = () => {
+      if (!vid || !seek) return;
+      if (!dragging) seek.value = vid.currentTime;
+      showTime(dragging ? +seek.value : vid.currentTime);
+      vplay.classList.toggle('playing', !vid.paused);
+    };
+    const jumpTo = t => {
+      if (!vid) return;
+      t = Math.max(0, Math.min(vid.duration || t, t));
+      lab.stopAt = null;
+      vid.currentTime = t; lab.time = t;
+      const k = cueAt(t);
+      if (k >= 0) setCur(k, true);
+      syncSeek();
+    };
+    if (vid && seek) {
+      vid.addEventListener('loadedmetadata', () => {
+        seek.max = vid.duration || 1;
+        // 在进度条上标出每句话的位置
+        const d = vid.duration || 1;
+        $('#vcues').innerHTML = lab.cues.filter(c => c.start != null).map(c => '<i style="left:' + (100 * c.start / d).toFixed(2) + '%;width:' + Math.max(0.15, 100 * (c.end - c.start) / d).toFixed(2) + '%"></i>').join('');
+        syncSeek();
+      });
+      vid.addEventListener('timeupdate', syncSeek);
+      vid.addEventListener('play', syncSeek);
+      vid.addEventListener('pause', syncSeek);
+      seek.oninput = () => { dragging = true; showTime(+seek.value); };
+      seek.onchange = () => { dragging = false; jumpTo(+seek.value); };
+      vplay.onclick = () => { if (vid.paused) { lab.stopAt = null; vid.playbackRate = lab.speed; vid.play().catch(() => {}); } else vid.pause(); };
+      vid.onclick = () => vplay.click();
+    }
     if (vid) {
       vid.addEventListener('loadedmetadata', () => { if (lab.time) vid.currentTime = lab.time; }, { once: true });
       vid.addEventListener('error', () => toast('浏览器播不了这个视频格式。换成 mp4 试试，或者只用字幕练习。'));
@@ -2061,6 +2149,7 @@
     viewKeys = e => {
       const k = e.key;
       if (k === ' ') { e.preventDefault(); toggle(); }
+      else if (e.shiftKey && vid && (k === 'ArrowLeft' || k === 'ArrowRight')) { e.preventDefault(); jumpTo(vid.currentTime + (k === 'ArrowLeft' ? -5 : 5)); }
       else if (k === 'ArrowLeft') { e.preventDefault(); playCue(lab.cur - 1); }
       else if (k === 'ArrowRight') { e.preventDefault(); playCue(lab.cur + 1); }
       else if (k === 'r' || k === 'R' || k === 'ArrowDown') { e.preventDefault(); playCue(lab.cur); }
@@ -2278,7 +2367,8 @@
         '<div class="grow"><b lang="ko">' + esc(x.ko) + '</b>　' + (x.unk ? '<span class="unk">' + (opt.src === 'kiwi' ? '离线词典里没有。点上面的“精标”让大模型标注，或者查 Naver 词典' : opt.noEdit ? '词典里没有，可以查 Naver 词典' : '还不知道意思，可以点“改意思”填上') + '</span>' : esc(x.zh)) + '　' + extra + '</div>' +
         '<div class="row" style="gap:4px;flex-wrap:nowrap">' + btns + '</div></div>';
     }).join('');
-    return '<div class="gloss-box">' + rows + '<div class="row gfoot"><a class="btn sm" target="_blank" rel="noopener" href="https://korean.dict.naver.com/kozhdict/#/search?query=' + encodeURIComponent(clean) + '">查 Naver 词典</a>' +
+    return '<div class="gloss-box">' + (HANGUL.test(clean) ? '<div class="g-word">' + pbtn(clean, 'f') + '<b lang="ko">' + esc(clean) + '</b>' + (pronOf(clean) ? ' <span class="tiny">读作</span> ' + pronTag(clean) : ' <span class="tiny">读音和写法一样</span>') + '</div>' : '') +
+      rows + '<div class="row gfoot"><a class="btn sm" target="_blank" rel="noopener" href="https://korean.dict.naver.com/kozhdict/#/search?query=' + encodeURIComponent(clean) + '">查 Naver 词典</a>' +
       (opt.src ? '<span class="tiny">' + (opt.src === 'llm' ? '意思由大模型标注' : '意思来自离线拆词和词典') + '</span>' : '') + '</div></div>';
   }
 
