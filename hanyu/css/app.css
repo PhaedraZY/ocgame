@@ -711,9 +711,10 @@ details > summary { cursor: pointer; }
 /* 大方块同理：横元音 + 收音三层时压缩元音那一层，防止溢出 */
 .hb-box span { min-height: 0; overflow: hidden; }
 .hb-h.has-t { grid-template: "l" 1fr "v" 0.7fr "t" 1fr / 1fr; }
-.hb-box.hb-h.has-t span { font-size: 0.8em; }
-.hb-box.hb-h.has-t { font-size: 26px; }
-.mph .hb-box.hb-h.has-t { font-size: 19px; }
+/* 只给大方块用：小方块（写法→读音那种）自己定字号，不能被这里放大 */
+.hb-box.hb-h.has-t:not(.hb-mini) span { font-size: 0.8em; }
+.hb-box.hb-h.has-t:not(.hb-mini) { font-size: 26px; }
+.mph .hb-box.hb-h.has-t:not(.hb-mini) { font-size: 19px; }
 
 /* 单词本 */
 .wb-today { margin-bottom: 18px; }
@@ -834,3 +835,28 @@ details > summary { cursor: pointer; }
 .lp-gh:hover .lp-arrow { transform: rotate(-4deg) scale(1.12); }
 .lp-group.open .lp-gh:hover .lp-arrow { transform: rotate(86deg) scale(1.12); }
 @media (prefers-reduced-motion: reduce) { .lp-arrow { transition: none; } }
+
+/* 拼字拆解图排成等宽的格子，手机上也一列列对齐 */
+.hb-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 16px 8px; justify-items: center; }
+.hb-list .hb { width: 100%; }
+@media (max-width: 760px) {
+  .hb-list { grid-template-columns: repeat(3, 1fr); gap: 14px 4px; }
+  .hb figcaption { gap: 4px; }
+  .hb-sum { font-size: 12px; }
+}
+/* 三层方块（开头辅音 / 横元音 / 收音）三行一样高，字都放得下 */
+.hb-h.has-t { grid-template: "l" 1fr "v" 1fr "t" 1fr / 1fr !important; }
+.hb-box.hb-h.has-t:not(.hb-mini) span { font-size: 0.68em; }
+.hb-box.hb-mini.hb-h.has-t span { font-size: 13px; }
+@media (max-width: 760px) { .hb-box.hb-mini.hb-h.has-t span { font-size: 11px; } }
+.hb-box.hb-mini.hb-h.has-t { height: 50px; }
+@media (max-width: 760px) { .hb-box.hb-mini.hb-h.has-t { height: 48px; } }
+/* 拆字图在手机上：前后两个字和中间的“+ 字母 →”排成一行 */
+@media (max-width: 760px) {
+  .mph { gap: 4px 6px; padding: 6px 8px; justify-content: center; }
+  .mph .hb-box { width: 54px; height: 54px; }
+  .mph .hb-box span { font-size: 16px; }
+  .mph .hb figcaption b { font-size: 15px; }
+  .mph-op { font-size: 15px; }
+  .mph-list { gap: 10px; }
+}
