@@ -287,7 +287,7 @@
   });
   const routes = [
     [/^#\/?$/, viewToday],
-    [/^#\/learn$/, viewLearn],
+    [/^#\/learn(?:\/(\w+))?$/, viewLearn],
     [/^#\/e\/(\w+)(?:\/(\d))?$/, viewEpisode],
     [/^#\/t\/(\w+)(?:\/(\d))?$/, viewTopic],
     [/^#\/b\/(\w+)(?:\/(\d))?$/, viewBasic],
@@ -331,7 +331,7 @@
       .concat(STATIC ? [] : [['#/songs', '歌曲']])
       .concat([['#/grammar', '语法速查'], ['#/rules', '音变速查'], null, ['#/lab', '精听工作台'], ['#/cards', '我的卡片'], ['#/settings', '设置']]);
     const on = href => href === '#/' ? (h === '#/' || h === '#' || h === '') :
-      href === '#/learn' ? (h === href || h.indexOf('#/e/') === 0 || h.indexOf('#/t/') === 0 || h.indexOf('#/b/') === 0) :
+      href === '#/learn' ? (h.indexOf('#/learn') === 0 || h.indexOf('#/e/') === 0 || h.indexOf('#/t/') === 0 || h.indexOf('#/b/') === 0) :
         href === '#/packs' ? (h === href || h.indexOf('#/pack/') === 0) :
           href === '#/words' ? (h === href || h.indexOf('#/words/') === 0) :
           href === '#/songs' ? (h === href || h.indexOf('#/song/') === 0) :
@@ -394,28 +394,67 @@
   }
 
   // ---------- 课程目录 ----------
-  function viewLearn() {
-    const nx = nextEp();
-    main.innerHTML = '<div class="wrap"><div class="page-head"><div class="cap lg pop" lang="ko">드라마로 배우는 한국어</div>' +
-      '<p class="lede">每一集是一段原创的小剧场，人物和故事连贯下去。每集五步：盲听、逐句、词汇、语法、练习。按顺序学，后面的集会用到前面的内容。没学过韩文字母的话，先学最上面的入门。</p></div>' +
-      BASICS.map(g => '<section class="season-block"><div class="kicker">入门</div><h2>' + esc(g.zh) + '</h2><p class="muted">' + esc(g.intro) + '</p><ol class="ep-list">' +
-        g.lessons.map(l => '<li><a href="#/b/' + l.id + '"><span class="ep-no">' + l.no + '</span><span><span class="ep-ko" lang="ko">' + esc(l.ko) + '</span><br><span class="ep-zh">' + esc(l.zh) + '。' + esc(l.goal) + '</span></span>' +
-          (S.done['b:' + l.id] ? '<span class="tag ok">已学</span>' : nextBasic() === l ? '<span class="tag next">下一课</span>' : '<span></span>') + '</a></li>').join('') +
-        '</ol></section>').join('') +
-      D.seasons.map((s, si) => '<section class="season-block"><div class="kicker">' + SEASON_ZH[si] + '</div><h2>' + esc(s.zh) + '</h2><p class="muted">' + esc(s.intro) + '</p><ol class="ep-list">' +
-        s.episodes.map(e => '<li><a href="#/e/' + e.id + '"><span class="ep-no">' + e.no + '</span><span><span class="ep-ko" lang="ko">' + esc(e.caption) + '</span><br><span class="ep-zh">' + esc(e.title) + '。' + esc(e.goal) + '</span></span>' +
-          (S.done[e.id] ? '<span class="tag ok">已学</span>' : nx === e ? '<span class="tag next">下一集</span>' : '<span></span>') + '</a></li>').join('') +
-        '</ol></section>').join('') +
-      topicBlock('场景词汇', '按场景记词', '吃的、星期月份、心情、恋爱、职场……按场景把常用词一次学完。每个主题有分组的词、实际读音、例句和一段小对话，不分先后，建议学完第一季第 4 集再开始。', TOPICS.filter(t => t.set !== 'star')) +
-      topicBlock('场景词汇', '明星和娱乐圈', '追星、拍戏、偶像舞台、综艺录制、颁奖典礼、娱乐新闻。看韩剧韩综和刷粉丝圈时天天碰到的词，包括 최애、본방사수、열애설 这类流行说法。剧里的明星都是虚构的。', TOPICS.filter(t => t.set === 'star')) + '</div>';
+  // ---------- 课程目录：继续学习 + 三个分区（入门 / 剧集 / 场景词汇），每组一张能折叠的卡片 ----------
+  const LTABS = [['basics', '入门'], ['drama', '剧集'], ['topics', '场景词汇']];
+  // 展开收起的三角：和页面大标题一样，黄色填充、深蓝描边、底下一道同色投影；展开时转 90 度朝下
+  const LP_ARROW = '<svg viewBox="0 0 28 30" width="26" height="28"><path d="M6 3.5 L23 14 L6 24.5 Z" fill="#1B2232" stroke="#1B2232" stroke-width="2.4" stroke-linejoin="round" transform="translate(0 2.8)"/>' +
+    '<path d="M6 3.5 L23 14 L6 24.5 Z" fill="#FFD23F" stroke="#1B2232" stroke-width="2.4" stroke-linejoin="round"/></svg>';
+  // 一门课属于哪个分区、哪一组：从课程里回来时打开对应的分区和那一组
+  function courseSpot(kind, it) {
+    if (kind === 'b') return { tab: 'basics', g: 'b:' + it.group.id, item: 'b:' + it.id };
+    if (kind === 'e') return { tab: 'drama', g: 's:' + it.season.id, item: 'e:' + it.id };
+    return { tab: 'topics', g: it.set === 'star' ? 't:star' : 't:daily', item: 't:' + it.id };
   }
-  function topicBlock(kick, h, p, list) {
-    if (!list.length) return '';
-    const no = t => TOPICS.indexOf(t) + 1;
-    return '<section class="season-block"><div class="kicker">' + kick + '</div><h2>' + h + '</h2><p class="muted">' + p + '</p><ol class="ep-list">' +
-      list.map(t => '<li><a href="#/t/' + t.id + '"><span class="ep-no">' + no(t) + '</span><span><span class="ep-ko" lang="ko">' + esc(t.ko) + '</span><br><span class="ep-zh">' + esc(t.zh) + '，' + topicWords(t).length + ' 个词</span></span>' +
-        (S.done['t:' + t.id] ? '<span class="tag ok">已学</span>' : '<span></span>') + '</a></li>').join('') + '</ol></section>';
+  const markSpot = (kind, it) => { S.lspot = courseSpot(kind, it); S.ltab = S.lspot.tab; if (S.lopen) delete S.lopen[S.lspot.g]; save(); };
+  function learnGroups() {
+    const nx = nextEp(), nb = nextBasic();
+    const row = (href, no, ko, zh, tip, done, next, key) => '<li data-k="' + key + '"><a href="' + href + '"' + (tip ? ' title="' + esc(tip) + '"' : '') + '><span class="ep-no">' + no + '</span>' +
+      '<span class="lp-t"><span class="ep-ko" lang="ko">' + esc(ko) + '</span><span class="lp-zh">' + esc(zh) + '</span></span>' +
+      (done ? '<span class="tag ok">已学</span>' : next ? '<span class="tag next">下一' + (key[0] === 'b' ? '课' : '集') + '</span>' : '<span></span>') + '</a></li>';
+    const G = [];
+    BASICS.forEach(g => G.push({ tab: 'basics', id: 'b:' + g.id, kick: '入门', name: g.zh, intro: g.intro, items: g.lessons,
+      done: l => !!S.done['b:' + l.id], cur: g.lessons.indexOf(nb) >= 0,
+      li: l => row('#/b/' + l.id, l.no, l.ko, l.zh, l.goal, S.done['b:' + l.id], nb === l, 'b:' + l.id) }));
+    D.seasons.forEach((se, si) => G.push({ tab: 'drama', id: 's:' + se.id, kick: SEASON_ZH[si], name: se.zh, intro: se.intro, items: se.episodes,
+      done: e => !!S.done[e.id], cur: !nb && se.episodes.indexOf(nx) >= 0,
+      li: e => row('#/e/' + e.id, e.no, e.caption, e.title, e.goal, S.done[e.id], nx === e, 'e:' + e.id) }));
+    [['t:daily', '日常场景', '吃的、星期月份、心情、恋爱、职场……按场景把常用词一次学完，不分先后，建议学完第一季第 4 集再开始。', TOPICS.filter(t => t.set !== 'star')],
+     ['t:star', '明星和娱乐圈', '追星、拍戏、偶像舞台、综艺录制、颁奖典礼、娱乐新闻，包括 최애、본방사수、열애설 这类流行说法。剧里的明星都是虚构的。', TOPICS.filter(t => t.set === 'star')]]
+      .forEach(([id, name, intro, list]) => list.length && G.push({ tab: 'topics', id: id, kick: '场景词汇', name: name, intro: intro, items: list,
+        done: t => !!S.done['t:' + t.id], cur: false,
+        li: t => row('#/t/' + t.id, TOPICS.indexOf(t) + 1, t.ko, t.zh + '，' + topicWords(t).length + ' 个词', t.intro, S.done['t:' + t.id], false, 't:' + t.id) }));
+    return G;
   }
+  function viewLearn(tab) {
+    const G = learnGroups(), nb = nextBasic(), nx = nextEp();
+    const cont = nb ? { href: '#/b/' + nb.id, label: '入门 · ' + nb.group.zh + ' 第 ' + nb.no + ' 课', ko: nb.ko, zh: nb.zh, tab: 'basics' }
+      : nx ? { href: '#/e/' + nx.id, label: epLabel(nx), ko: nx.caption, zh: nx.title, tab: 'drama' } : null;
+    tab = LTABS.some(x => x[0] === tab) ? tab : (S.ltab || (cont ? cont.tab : 'drama'));
+    if (S.ltab !== tab) { S.ltab = tab; save(); }
+    S.lopen = S.lopen || {};
+    const spot = S.lspot || {};
+    const isOpen = g => g.id in S.lopen ? S.lopen[g.id] : (g.cur || g.id === spot.g);
+    const count = t => G.filter(g => g.tab === t).reduce((a, g) => a + g.items.length, 0);
+    main.innerHTML = '<div class="wrap"><div class="page-head lp-head"><div class="cap lg pop" lang="ko">드라마로 배우는 한국어</div>' +
+      (cont ? '<a class="lp-cont" href="' + cont.href + '"><span class="tiny">继续学习 · ' + esc(cont.label) + '</span><span><b lang="ko">' + esc(cont.ko) + '</b>　' + esc(cont.zh) + '</span><span class="btn primary sm">开始</span></a>' : '') + '</div>' +
+      '<div class="lp-tabs" role="tablist">' + LTABS.map(([k, n]) => '<a role="tab" href="#/learn/' + k + '" class="' + (k === tab ? 'on' : '') + '" aria-selected="' + (k === tab) + '">' + n + '<small>' + count(k) + '</small></a>').join('') + '</div>' +
+      G.filter(g => g.tab === tab).map(g => {
+        const d = g.items.filter(g.done).length, open = isOpen(g);
+        return '<section class="lp-group' + (open ? ' open' : '') + '" data-g="' + g.id + '"><button class="lp-gh" aria-expanded="' + open + '"><span class="lp-arrow" aria-hidden="true">' + LP_ARROW + '</span>' +
+          '<span class="lp-name"><span class="kicker">' + esc(g.kick) + '</span><b>' + esc(g.name) + '</b></span>' +
+          '<span class="lp-prog"><i style="width:' + (100 * d / g.items.length).toFixed(0) + '%"></i></span><span class="lp-n">' + d + '/' + g.items.length + '</span></button>' +
+          '<div class="lp-body"' + (open ? '' : ' hidden') + '><p class="muted small lp-intro">' + esc(g.intro) + '</p><ol class="ep-list lp-list">' + g.items.map(g.li).join('') + '</ol></div></section>';
+      }).join('') + '</div>';
+    $$('.lp-gh').forEach(b => b.onclick = () => {
+      const sec = b.closest('.lp-group'), body = $('.lp-body', sec), open = body.hidden;
+      body.hidden = !open; sec.classList.toggle('open', open); b.setAttribute('aria-expanded', open);
+      S.lopen[sec.dataset.g] = open; save();
+    });
+    // 从某一课回来：滚到那一课
+    const li = spot.item && $('li[data-k="' + spot.item + '"]');
+    if (li && !li.closest('[hidden]')) { li.classList.add('lp-last'); setTimeout(() => li.scrollIntoView({ block: 'center' }), 0); }
+  }
+
 
 
   // ---------- 入门：四十音等基础课 ----------
@@ -520,6 +559,7 @@
   function viewBasic(id, step) {
     const l = BL[id];
     if (!l) { location.hash = '#/learn'; return; }
+    markSpot('b', l);
     step = Math.min(2, Math.max(1, +step || 1));
     const NAMES = ['讲解', '练习'], g = l.group;
     main.innerHTML = '<div class="wrap"><div class="ep-head"><div class="kicker"><a href="#/learn">课程</a>　入门 · ' + esc(g.zh) + ' 第 ' + l.no + ' 课</div>' +
@@ -912,6 +952,7 @@
   function viewTopic(id, step) {
     const t = TOPIC[id];
     if (!t) { location.hash = '#/learn'; return; }
+    markSpot('t', t);
     const TSTEPS = t.lesson ? ['讲解', '词汇', '对话', '练习'] : ['词汇', '对话', '练习'];
     const STEPFN = t.lesson ? [topicLesson, topicWordsStep, topicTalk, topicPractice] : [topicWordsStep, topicTalk, topicPractice];
     step = Math.min(TSTEPS.length, Math.max(1, +step || 1));
@@ -1109,6 +1150,7 @@
   function viewEpisode(id, step) {
     const ep = EP[id];
     if (!ep) { location.hash = '#/learn'; return; }
+    markSpot('e', ep);
     step = Math.min(5, Math.max(1, +step || 1));
     main.innerHTML = '<div class="wrap"><div class="ep-head"><div class="kicker"><a href="#/learn">课程</a>　' + epLabel(ep) + '</div>' +
       '<div class="cap lg pop" lang="ko">' + esc(ep.caption) + '</div><h1>' + esc(ep.title) + '</h1><p class="muted">' + esc(ep.goal) + '</p></div>' +
