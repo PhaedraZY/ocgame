@@ -860,3 +860,6 @@ details > summary { cursor: pointer; }
   .mph-op { font-size: 15px; }
   .mph-list { gap: 10px; }
 }
+
+/* 进度码输入框：长串文字小字号、随处换行 */
+#codeBox { width: 100%; margin-top: 10px; font: 12px/1.4 ui-monospace, Consolas, monospace; word-break: break-all; }

@@ -96,10 +96,75 @@
   const today = () => { const d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000); };
   const logAct = n => { const t = today(); S.log[t] = (S.log[t] || 0) + (n || 1); };
 
+  // ---------- 进度合并：导入别处的进度时，两边学过的都保留，不覆盖 ----------
+  // 已学的课：并集，同一课保留分数高的；卡片：并集，同一张卡保留最近复习过的那边（老记录没有时间，就保留进度更靠后的）；
+  // “我已经会了”：并集；每天学习次数：取大的（不相加，同一个文件导入两次也不会翻倍）；设置和页面位置：保留本机的。
+  function mergeProgress(cur, inc) {
+    const out = JSON.parse(JSON.stringify(cur)), n = { done: 0, doneUp: 0, cards: 0, srsUp: 0, known: 0, days: 0, lab: 0 };
+    const better = (a, b) => {   // b 是否比 a 更新
+      if (a.at && b.at) return b.at > a.at;
+      if (a.at || b.at) return !!b.at && !a.at && (b.reps || 0) >= (a.reps || 0);
+      return (b.due || 0) > (a.due || 0) || ((b.due || 0) === (a.due || 0) && (b.reps || 0) > (a.reps || 0));
+    };
+    out.done = out.done || {};
+    Object.entries(inc.done || {}).forEach(([k, v]) => {
+      const o = out.done[k];
+      if (!o) { out.done[k] = v; n.done++; return; }
+      const score = x => (x.score || 0) + (x.quiz || 0) + (x.order || 0);
+      if (score(v) > score(o)) { out.done[k] = Object.assign({}, v, { d: Math.min(o.d || v.d, v.d || o.d) }); n.doneUp++; }
+    });
+    out.cards = out.cards || {}; out.srs = out.srs || {};
+    Object.entries(inc.cards || {}).forEach(([k, c]) => { if (!out.cards[k]) { out.cards[k] = c; n.cards++; } });
+    Object.entries(inc.srs || {}).forEach(([k, v]) => {
+      if (!out.cards[k]) return;
+      const o = out.srs[k];
+      if (!o) out.srs[k] = v;
+      else if (better(o, v)) { out.srs[k] = v; n.srsUp++; }
+    });
+    out.known = out.known || {};
+    Object.keys(inc.known || {}).forEach(k => { if (!out.known[k]) { out.known[k] = 1; n.known++; } });
+    out.log = out.log || {};
+    Object.entries(inc.log || {}).forEach(([d, v]) => { if (!out.log[d]) n.days++; if ((v || 0) > (out.log[d] || 0)) out.log[d] = v; });
+    out.lab = out.lab || {};
+    Object.entries(inc.lab || {}).forEach(([k, v]) => { if (!(k in out.lab)) { out.lab[k] = v; n.lab++; } });
+    return { state: out, n: n };
+  }
+  const isProgress = d => d && typeof d === 'object' && typeof d.cards === 'object' && typeof d.srs === 'object';
+  // 进度码：压缩后转成一串文字，方便在手机和电脑之间复制粘贴
+  async function progressCode() {
+    const raw = new TextEncoder().encode(JSON.stringify(S));
+    let bytes = raw, tag = 'J';
+    if (window.CompressionStream) { bytes = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer()); tag = 'G'; }
+    let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return 'HGR1' + tag + btoa(bin);
+  }
+  async function readProgress(text) {
+    text = (text || '').trim();
+    if (text[0] === '{') return JSON.parse(text);
+    const m = text.match(/HGR1([JG])([A-Za-z0-9+/=]+)/);
+    if (!m) throw new Error('bad');
+    const bin = atob(m[2]), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const out = m[1] === 'G' ? new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()) : bytes;
+    return JSON.parse(new TextDecoder().decode(out));
+  }
+  function importProgress(data) {
+    if (!isProgress(data)) { toast('这不是 한걸음 的进度。'); return; }
+    const { state, n } = mergeProgress(S, data);
+    const parts = [n.done ? '新增已学的课 ' + n.done + ' 个' : '', n.doneUp ? '更新成绩 ' + n.doneUp + ' 个' : '', n.cards ? '新增复习卡片 ' + n.cards + ' 张' : '',
+      n.srsUp ? '用对方更新的复习记录 ' + n.srsUp + ' 张' : '', n.known ? '新增“已经会了”的词 ' + n.known + ' 个' : '', n.days ? '新增学习日 ' + n.days + ' 天' : ''].filter(Boolean);
+    if (!parts.length) { toast('对方的进度这里都已经有了，不用合并。'); return; }
+    if (!confirm('合并进度（不会删掉这里已有的任何记录）：\n\n' + parts.join('\n') + '\n\n继续吗？')) return;
+    localStorage.setItem(KEY + '.before-merge', JSON.stringify(S));
+    localStorage.setItem(KEY, JSON.stringify(state)); loadState(); renderNav();
+    toast('合并好了：' + parts.join('，') + '。');
+    route();
+  }
+
   function addCard(c, due) {
     if (S.cards[c.id]) return false;
     S.cards[c.id] = c;
-    S.srs[c.id] = { due: due == null ? today() : due, ivl: 0, ease: 2.5, reps: 0, lapse: 0 };
+    S.srs[c.id] = { due: due == null ? today() : due, ivl: 0, ease: 2.5, reps: 0, lapse: 0, at: Date.now() };
     return true;
   }
   const wordCard = (w, i, src) => ({ id: 'w:' + (w.id || w.ko), kind: 'word', ko: w.ko, f: w.f || '', zh: w.zh, v: KS.vx(i), say: KS.wordSay(w), src: src });
@@ -1604,7 +1669,7 @@
     const reveal = () => { if (revealed || !queue.length) return; revealed = true; draw(); };
     const rate = r => {
       const id = queue.shift(), ns = schedule(r, S.srs[id]);
-      ns.due = today() + ns.ivl;
+      ns.due = today() + ns.ivl; ns.at = Date.now();
       S.srs[id] = ns;
       if (r === 1) queue.push(id);
       doneN++; logAct(); save(); revealed = false; stopAudio(); draw(); renderNav();
@@ -2222,7 +2287,10 @@
       '<div class="set-row"><div><h3>播放语速</h3><p class="muted small">课程音频的默认语速。侧边栏底部也能切换。</p></div><div class="seg" id="rates">' + RATES.map(r => '<button data-r="' + r + '" class="' + (S.set.rate === r ? 'on' : '') + '">' + r + '×</button>').join('') + '</div></div>' +
       '<div class="set-row"><div><h3>默认遮住中文</h3><p class="muted small">逐句、词汇和表达包页面先只显示韩文，点一下才看意思。</p></div><button class="btn ' + (S.set.veilZh ? 'on' : '') + '" id="vz">' + (S.set.veilZh ? '已开启' : '已关闭') + '</button></div>' +
       '<div class="set-row"><div><h3>声音来源</h3><p class="muted small" id="audioState">正在检查…</p></div></div>' +
-      '<div class="set-row"><div><h3>备份进度</h3><p class="muted small">进度保存在这个浏览器里。换电脑或换浏览器前先导出，到新地方再导入。</p></div><div class="row"><button class="btn" id="exp">导出</button><label class="btn">导入<input type="file" id="imp" accept=".json" hidden></label></div></div>' +
+      '<div class="set-row set-sync"><div><h3>导出和合并进度</h3><p class="muted small">进度保存在每个浏览器里，本地版、网上版、手机、电脑各是一份。在一边导出，到另一边导入，<b>两边学过的会合并在一起</b>，不会覆盖任何一边已有的记录。可以用文件，也可以复制一串“进度码”，用微信发给自己再粘贴。</p>' +
+        '<div class="row" style="margin-top:10px"><button class="btn" id="exp">导出成文件</button><label class="btn">从文件导入并合并<input type="file" id="imp" accept=".json,application/json" hidden></label>' +
+        '<button class="btn" id="expCode">复制进度码</button><button class="btn" id="impCode">粘贴进度码合并</button>' + (localStorage.getItem(KEY + '.before-merge') ? '<button class="btn sm" id="undoMerge">撤销上次合并</button>' : '') + '</div>' +
+        '<textarea id="codeBox" class="dict-in" rows="3" hidden spellcheck="false" placeholder="把另一边复制的进度码粘贴到这里，再点“合并”"></textarea><div class="row" id="codeRow" hidden style="margin-top:6px"><button class="btn primary sm" id="codeGo">合并</button></div></div></div>' +
       '<div class="set-row"><div><h3>清空进度</h3><p class="muted small">删除所有学习记录和复习卡片，不能恢复。</p></div><button class="btn" id="reset">清空</button></div>' +
       '</div>' +
       '<div class="panel" style="margin-top:20px" id="llmPanel"><h3>大模型精标接口</h3>' +
@@ -2258,12 +2326,27 @@
     };
     $('#imp').onchange = async e => {
       const f = e.target.files[0]; if (!f) return;
-      try {
-        const data = JSON.parse(await f.text());
-        if (!data || typeof data.cards !== 'object' || typeof data.srs !== 'object') throw new Error('bad');
-        if (!confirm('导入会覆盖现在的进度。继续吗？')) return;
-        localStorage.setItem(KEY, JSON.stringify(data)); loadState(); toast('已导入 ' + Object.keys(S.cards).length + ' 张卡片。'); route();
-      } catch (err) { toast('这个文件不是 한걸음 的进度备份。'); }
+      try { importProgress(JSON.parse(await f.text())); } catch (err) { toast('这个文件不是 한걸음 的进度备份。'); }
+      e.target.value = '';
+    };
+    $('#expCode').onclick = async () => {
+      const code = await progressCode();
+      try { await navigator.clipboard.writeText(code); toast('进度码已复制（' + Math.ceil(code.length / 1024) + ' KB），发给自己，在另一边点“粘贴进度码合并”。'); }
+      catch (err) { const b = $('#codeBox'); b.hidden = false; b.value = code; b.select(); toast('没能自动复制，已经选中了，请手动复制。'); }
+    };
+    $('#impCode').onclick = async () => {
+      const b = $('#codeBox'); b.hidden = false; $('#codeRow').hidden = false; b.value = '';
+      try { const t = await navigator.clipboard.readText(); if (/HGR1/.test(t)) b.value = t; } catch (err) { }
+      b.focus();
+    };
+    $('#codeGo').onclick = async () => {
+      try { importProgress(await readProgress($('#codeBox').value)); } catch (err) { toast('进度码不完整或者不对，重新复制一遍试试。'); }
+    };
+    const ub = $('#undoMerge');
+    if (ub) ub.onclick = () => {
+      if (!confirm('恢复到上次合并之前的进度？')) return;
+      localStorage.setItem(KEY, localStorage.getItem(KEY + '.before-merge')); localStorage.removeItem(KEY + '.before-merge');
+      loadState(); renderNav(); toast('已恢复到合并之前。'); viewSettings();
     };
     $('#reset').onclick = () => {
       if (!confirm('确定清空所有进度和卡片？')) return;
